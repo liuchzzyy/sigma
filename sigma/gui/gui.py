@@ -68,9 +68,9 @@ def save_fig(fig):
         layout=Layout(width="auto"),
     )
     dpi = widgets.BoundedIntText(
-        value="96",
+        value="600",
         min=0,
-        max=300,
+        max=900,
         step=1,
         description="Set dpi:",
         disabled=False,
