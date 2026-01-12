@@ -1,4 +1,4 @@
-from .load import SEMDataset
+from .load import SEMDataset, TEMDataset, IMAGEDataset, PIXLDataset
 from .normalisation import (
     neighbour_averaging,
     softmax,
@@ -15,6 +15,9 @@ from .visualisation import (
 
 __all__ = [
     "SEMDataset",
+    "TEMDataset",
+    "IMAGEDataset",
+    "PIXLDataset",
     "neighbour_averaging",
     "zscore",
     "softmax",

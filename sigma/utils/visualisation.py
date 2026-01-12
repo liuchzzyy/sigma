@@ -1,4 +1,3 @@
-
 import exspy
 import matplotlib as mpl
 import matplotlib.colors as mcolors
@@ -10,8 +9,7 @@ from exspy.signals import EDSSEMSpectrum, EDSTEMSpectrum
 from matplotlib import pyplot as plt
 from plotly.offline import init_notebook_mode
 
-from sigma.utils.load import IMAGEDataset, PIXLDataset, SEMDataset
-from sigma.utils.loadtem import TEMDataset
+from sigma.utils.load import IMAGEDataset, PIXLDataset, SEMDataset, TEMDataset
 
 init_notebook_mode(connected=True)
 
@@ -20,7 +18,7 @@ for element in exspy.material.elements:
     if element[0] == "Li":
         continue
     # Check if the element has Xray_lines
-    if hasattr(element[1], 'Atomic_properties') and hasattr(element[1].Atomic_properties, 'Xray_lines'):
+    if hasattr(element[1], "Atomic_properties") and hasattr(element[1].Atomic_properties, "Xray_lines"):
         for character in element[1].Atomic_properties.Xray_lines:
             peak_name = element[0]
             char_name = character[0]
@@ -116,9 +114,7 @@ def plot_intensity_maps(spectra, element_list, colors=[], save=None):
         pass
     elif not colors:
         for i in range(num_peak):
-            cmaps.append(
-                make_colormap([c("k"), hsv(i / num_peak)[:3], 1, hsv(i / num_peak)[:3]])
-            )
+            cmaps.append(make_colormap([c("k"), hsv(i / num_peak)[:3], 1, hsv(i / num_peak)[:3]]))
     else:
         assert len(colors) == num_peak
         for color in colors:
@@ -170,7 +166,7 @@ def plot_intensity_maps(spectra, element_list, colors=[], save=None):
     return fig
 
 
-def plot_rgb(dataset:SEMDataset | TEMDataset | IMAGEDataset, elemental_maps:np.ndarray, elements:list=[]):
+def plot_rgb(dataset: SEMDataset | TEMDataset | IMAGEDataset, elemental_maps: np.ndarray, elements: list = []):
     assert len(elements) < 4
     if not elements:
         elements = dataset.feature_list[:3]
@@ -190,13 +186,11 @@ def plot_rgb(dataset:SEMDataset | TEMDataset | IMAGEDataset, elemental_maps:np.n
     return fig
 
 
-def plot_pixel_distributions(
-    dataset:SEMDataset | TEMDataset | IMAGEDataset, norm_list:list=[], peak:str="Fe_Ka", cmap:str="viridis"
-):
+def plot_pixel_distributions(dataset: SEMDataset | TEMDataset | IMAGEDataset, norm_list: list = [], peak: str = "Fe_Ka", cmap: str = "viridis"):
     idx = dataset.feature_dict[peak]
     sns.set_style("ticks")
     if type(dataset) not in [IMAGEDataset, PIXLDataset]:
-        normalised_elemental_data = dataset.get_feature_maps()  
+        normalised_elemental_data = dataset.get_feature_maps()
     else:
         normalised_elemental_data = dataset.chemical_maps
     num_norm_process = len(norm_list) + 1

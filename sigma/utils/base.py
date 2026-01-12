@@ -6,7 +6,8 @@ from exspy.signals import EDSSEMSpectrum
 
 hs.preferences.GUIs.warn_if_guis_are_missing = False
 hs.preferences.save()
-        
+
+
 class BaseDataset:
     def __init__(self, file_path: str | Path):
         self.base_dataset = hs.load(file_path)
@@ -30,9 +31,17 @@ class BaseDataset:
 
     def rebin_signal(self, size=(2, 2)):
         print(f"Rebinning the intensity with the size of {size}")
+        if self.spectra is None:
+            raise ValueError("Cannot rebin: spectra is None")
+        if self.nav_img is None:
+            raise ValueError("Cannot rebin: nav_img is None")
+
         x, y = size[0], size[1]
         self.spectra_bin = self.spectra.rebin(scale=(x, y, 1))
         self.nav_img_bin = self.nav_img.rebin(scale=(x, y))
+        if self.spectra_bin is None:
+            raise ValueError("Rebinning failed: spectra_bin is None")
+
         self.spectra_raw = self.spectra_bin.deepcopy()
         return (self.spectra_bin, self.nav_img_bin)
 
@@ -44,8 +53,8 @@ class BaseDataset:
             if spectra is None:
                 continue
             else:
-                scale = spectra.axes_manager[2].scale
-                offset = spectra.axes_manager[2].offset
+                scale = spectra.axes_manager[2].scale  # type: ignore
+                offset = spectra.axes_manager[2].offset  # type: ignore
                 end_ = int((end - offset) / scale)
                 for i in range(end_):
                     spectra.isig[i] = 0
@@ -58,7 +67,17 @@ class BaseDataset:
             spectra_norm = self.spectra_bin
         else:
             spectra_norm = self.spectra
-        spectra_norm.data = spectra_norm.data / spectra_norm.data.sum(axis=2, keepdims=True)
+
+        if spectra_norm is None:
+            raise ValueError("Cannot normalise: no spectra data found.")
+
+        # Ensure correct broadcasting and handle potential nans/zeros
+        total_intensity = spectra_norm.data.sum(axis=2, keepdims=True)
+        # Avoid division by zero
+        total_intensity[total_intensity == 0] = 1.0
+
+        spectra_norm.data = spectra_norm.data / total_intensity
+
         if np.isnan(np.sum(spectra_norm.data)):
             spectra_norm.data = np.nan_to_num(spectra_norm.data)
         return spectra_norm
@@ -71,7 +90,11 @@ class BaseDataset:
             spectra_denoised = self.spectra_bin
         else:
             spectra_denoised = self.spectra
-        spectra_denoised.decomposition(
+
+        if spectra_denoised is None:
+            raise ValueError("Cannot denoise: no spectra data found.")
+
+        spectra_denoised.decomposition(  # type: ignore
             normalize_poissonian_noise=True,
             algorithm="SVD",
             random_state=0,
@@ -79,28 +102,31 @@ class BaseDataset:
         )
 
         if plot_results == True:
-            spectra_denoised.plot_decomposition_results()
-            spectra_denoised.plot_explained_variance_ratio(log=True)
-            spectra_denoised.plot_decomposition_factors(comp_ids=4)
+            spectra_denoised.plot_decomposition_results()  # type: ignore
+            spectra_denoised.plot_explained_variance_ratio(log=True)  # type: ignore
+            spectra_denoised.plot_decomposition_factors(comp_ids=4)  # type: ignore
 
         return spectra_denoised
 
-    def get_feature_maps(self, feature_list=None, raw_data:bool=False) -> np.ndarray:
+    def get_feature_maps(self, feature_list=None, raw_data: bool = False) -> np.ndarray:
         if feature_list is not None:
             self.set_feature_list(feature_list)
+
+        if self.spectra is None:
+            raise ValueError("spectra is None")
 
         num_elements = len(self.feature_list)
 
         if (self.spectra_bin is None) or (raw_data):
-            lines = self.spectra.get_lines_intensity(self.feature_list)
+            lines = self.spectra.get_lines_intensity(self.feature_list)  # type: ignore
         else:
-            lines = self.spectra_bin.get_lines_intensity(self.feature_list)
+            lines = self.spectra_bin.get_lines_intensity(self.feature_list)  # type: ignore
 
-        dims = lines[0].data.shape
+        dims = lines[0].data.shape  # type: ignore
         data_cube = np.zeros((dims[0], dims[1], num_elements))
 
         for i in range(num_elements):
-            data_cube[:, :, i] = lines[i]
+            data_cube[:, :, i] = lines[i]  # type: ignore
 
         return data_cube
 
@@ -108,7 +134,7 @@ class BaseDataset:
         self.normalised_elemental_data = self.get_feature_maps(self.feature_list)
         print("Normalise dataset using:")
         for i, norm_process in enumerate(norm_list):
-            print(f"    {i+1}. {norm_process.__name__}")
+            print(f"    {i + 1}. {norm_process.__name__}")
             self.normalised_elemental_data = norm_process(
                 self.normalised_elemental_data
             )

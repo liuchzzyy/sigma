@@ -19,8 +19,7 @@ from plotly.offline import init_notebook_mode
 
 from sigma.processing.segmentation import PixelSegmenter
 from sigma.utils import visualisation as visual
-from sigma.utils.load import IMAGEDataset, PIXLDataset, SEMDataset
-from sigma.utils.loadtem import TEMDataset
+from sigma.utils.load import IMAGEDataset, PIXLDataset, SEMDataset, TEMDataset
 from sigma.utils.physics import k_factors_120kV
 
 init_notebook_mode(connected=True)

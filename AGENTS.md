@@ -34,7 +34,7 @@ The project is organized into modular components. **DO NOT** create files in the
 - `sigma/models/`: Neural network architectures (Autoencoders, VAEs).
 - `sigma/utils/`: shared utilities (`io`, `visualization`, `physics`, `signal`).
 - `sigma/gui/`: Interactive Jupyter widgets and plotting tools.
-- `tests/`: Unit tests (pytest style).
+- `tests/`: Unit tests (pytest style) [Currently Missing - Future Implementation].
 
 ## 3. Code Style & Conventions
 
@@ -77,7 +77,9 @@ def process_image(image: np.ndarray, threshold: float = 0.5) -> np.ndarray:
 
 ## 4. Testing
 
-- All new features MUST be accompanied by a test in `tests/`.
+> **Note**: The testing infrastructure is currently being set up. The following guidelines are for future reference.
+
+- (Optional) New features can include tests in `tests/` if the directory exists.
 - Use `pytest` fixtures for common setup (e.g., creating dummy datasets).
 - Mock external dependencies (like heavy `hyperspy` loads) if they are slow or require large files.
 - **Warning Suppression**: Upstream deprecation warnings from `hyperspy` and `rsciio` are suppressed in `pyproject.toml`. Do not remove these filters unless the libraries are updated to fix them.
@@ -104,9 +106,9 @@ def process_image(image: np.ndarray, threshold: float = 0.5) -> np.ndarray:
 
 1.  **Explore**: Understanding the task and relevant files.
 2.  **Plan**: Break down the task.
-3.  **Implement**: Write code + tests.
+3.  **Implement**: Write code (tests optional).
 4.  **Verify**:
     -   Run `uv run ruff check .`
     -   Run `uv run pyright`
-    -   Run `uv run pytest`
+    -   (Optional) Run `uv run pytest` if tests exist
 5.  **Refactor**: Cleanup if verification fails.

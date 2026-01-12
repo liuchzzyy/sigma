@@ -19,8 +19,7 @@ from sklearn.decomposition import NMF
 # import hdbscan
 from sklearn.mixture import BayesianGaussianMixture, GaussianMixture
 
-from sigma.utils.load import IMAGEDataset, PIXLDataset, SEMDataset
-from sigma.utils.loadtem import TEMDataset
+from sigma.utils.load import IMAGEDataset, PIXLDataset, SEMDataset, TEMDataset
 from sigma.utils.physics import k_factors_120kV
 from sigma.utils.signal import fft_denoise2d
 from sigma.utils.visualisation import make_colormap
@@ -102,7 +101,9 @@ class PixelSegmenter:
             if element[0] == "Li":
                 continue
             # Check if the element has Xray_lines
-            if hasattr(element[1], 'Atomic_properties') and hasattr(element[1].Atomic_properties, 'Xray_lines'):
+            if hasattr(element[1], "Atomic_properties") and hasattr(
+                element[1].Atomic_properties, "Xray_lines"
+            ):
                 for character in element[1].Atomic_properties.Xray_lines:
                     peak_name = element[0]
                     char_name = character[0]
@@ -949,8 +950,7 @@ class PixelSegmenter:
                 else self.dataset.nav_img.data
             )
         elif (
-            self.dataset.intensity_map.shape[:2]
-            != self.dataset.chemical_maps.shape[:2]
+            self.dataset.intensity_map.shape[:2] != self.dataset.chemical_maps.shape[:2]
         ):  # if size of intensity map is different from chemical maps
             nav_img = resize(
                 self.dataset.intensity_map, self.dataset.chemical_maps.shape[:2]
