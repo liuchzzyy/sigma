@@ -1,10 +1,11 @@
-from typing import List
+
 import hyperspy.api as hs
 import numpy as np
-from sigma.utils.load import SEMDataset
-from hyperspy.signals import Signal2D, Signal1D
 from exspy.signals import EDSTEMSpectrum
+from hyperspy.signals import Signal1D, Signal2D
+
 from .base import BaseDataset
+
 
 class TEMDataset(BaseDataset):
     def __init__(self, file_path: str):
@@ -12,41 +13,40 @@ class TEMDataset(BaseDataset):
         
         if type(self.base_dataset) == Signal2D:
             self.stem = self.base_dataset
-        else:
-            if type(self.base_dataset) == Signal1D:
-                self.spectra = hs.load(file_path, signal_type="EDS_TEM")
-                self.nav_img = Signal2D(self.spectra.data.sum(axis=2))
-                self.spectra.change_dtype("float32")
-                self.spectra_raw = self.spectra.deepcopy()
+        elif type(self.base_dataset) == Signal1D:
+            self.spectra = hs.load(file_path, signal_type="EDS_TEM")
+            self.nav_img = Signal2D(self.spectra.data.sum(axis=2))
+            self.spectra.change_dtype("float32")
+            self.spectra_raw = self.spectra.deepcopy()
 
-                self.spectra.metadata.set_item("Sample.xray_lines", [])
-                self.spectra.axes_manager["Energy"].scale = 0.01 * 8.07 / 8.08
-                self.spectra.axes_manager["Energy"].offset = -0.01
-                self.spectra.axes_manager["Energy"].units = "keV"
+            self.spectra.metadata.set_item("Sample.xray_lines", [])
+            self.spectra.axes_manager["Energy"].scale = 0.01 * 8.07 / 8.08
+            self.spectra.axes_manager["Energy"].offset = -0.01
+            self.spectra.axes_manager["Energy"].units = "keV"
 
-                self.feature_list = []
-            
-            # if data format is .emd file
-            elif type(self.base_dataset) is list: #file_path[-4:]=='.emd' and 
-                emd_dataset = self.base_dataset
-                self.nav_img = None
-                for dataset in emd_dataset:
-                    if (self.nav_img is None) and (dataset.metadata.General.title == "HAADF"):
-                        self.original_nav_img = dataset
-                        self.nav_img = dataset  # load HAADF data
-                    elif type(dataset) is EDSTEMSpectrum:
-                        self.original_spectra = dataset
-                        self.spectra = dataset  # load spectra data from .emd file
+            self.feature_list = []
 
-                self.spectra.change_dtype("float32")  
-                self.spectra_raw = self.spectra.deepcopy()
+        # if data format is .emd file
+        elif type(self.base_dataset) is list: #file_path[-4:]=='.emd' and 
+            emd_dataset = self.base_dataset
+            self.nav_img = None
+            for dataset in emd_dataset:
+                if (self.nav_img is None) and (dataset.metadata.General.title == "HAADF"):
+                    self.original_nav_img = dataset
+                    self.nav_img = dataset  # load HAADF data
+                elif type(dataset) is EDSTEMSpectrum:
+                    self.original_spectra = dataset
+                    self.spectra = dataset  # load spectra data from .emd file
 
-                elements = self.spectra.metadata.Sample.elements
-                self.spectra.metadata.set_item("Sample.xray_lines", [e+'_Ka' for e in elements])
-                self.feature_list = self.spectra.metadata.Sample.xray_lines
-                self.feature_dict = {el: i for (i, el) in enumerate(self.feature_list)}
+            self.spectra.change_dtype("float32")  
+            self.spectra_raw = self.spectra.deepcopy()
 
-    def set_xray_lines(self, xray_lines: List[str]):
+            elements = self.spectra.metadata.Sample.elements
+            self.spectra.metadata.set_item("Sample.xray_lines", [e+'_Ka' for e in elements])
+            self.feature_list = self.spectra.metadata.Sample.xray_lines
+            self.feature_dict = {el: i for (i, el) in enumerate(self.feature_list)}
+
+    def set_xray_lines(self, xray_lines: list[str]):
         """
         Set the X-ray lines for the spectra analysis. 
 

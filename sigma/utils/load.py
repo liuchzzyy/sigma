@@ -1,18 +1,19 @@
 import os
-import numpy as np
-import hyperspy.api as hs
-
-from typing import Union, Tuple, List
+from os.path import join
 from pathlib import Path
-from PIL import Image, ImageOps
-from os.path import isfile, join
-from skimage.transform import resize
+
+import hyperspy.api as hs
+import numpy as np
 from exspy.signals import EDSSEMSpectrum
 from hyperspy.signals import Signal2D
+from PIL import Image, ImageOps
+from skimage.transform import resize
+
 from .base import BaseDataset
 
+
 class SEMDataset(BaseDataset):
-    def __init__(self, file_path: Union[str, Path], nag_file_path: Union[str, Path]=None):
+    def __init__(self, file_path: str | Path, nag_file_path: str | Path=None):
         super().__init__(file_path)
 
         # for .bcf files:
@@ -52,10 +53,10 @@ class SEMDataset(BaseDataset):
         self.feature_list = self.spectra.metadata.Sample.xray_lines
         self.feature_dict = {el: i for (i, el) in enumerate(self.feature_list)}
 
-class IMAGEDataset(object):
+class IMAGEDataset:
     def __init__(self, 
-                 chemical_maps_dir: Union[str, Path], 
-                 intensity_map_path: Union[str, Path]
+                 chemical_maps_dir: str | Path, 
+                 intensity_map_path: str | Path
                  ):
 
         chemical_maps_paths = [join(chemical_maps_dir, f) for f in os.listdir(chemical_maps_dir) if not f.startswith('.')]
@@ -77,7 +78,7 @@ class IMAGEDataset(object):
         self.feature_dict = {el: i for (i, el) in enumerate(self.feature_list)}
         print(f"Set feature_list to {self.feature_list}")
     
-    def rebin_signal(self, size:Tuple=(2,2)):
+    def rebin_signal(self, size:tuple=(2,2)):
         for (i, maps) in enumerate([self.chemical_maps, self.intensity_map]):
             w, h = maps.shape[:2]
             new_w, new_h = int(w/size[0]), int(h/size[1])
@@ -87,7 +88,7 @@ class IMAGEDataset(object):
             else: 
                 self.intensity_map_bin = maps
 
-    def normalisation(self, norm_list:List=[]):
+    def normalisation(self, norm_list:list=[]):
         self.normalised_elemental_data = self.chemical_maps_bin if self.chemical_maps_bin is not None else self.chemical_maps
         print("Normalise dataset using:")
         for i, norm_process in enumerate(norm_list):
@@ -97,7 +98,7 @@ class IMAGEDataset(object):
             )
 
 class PIXLDataset(IMAGEDataset):
-    def __init__(self, file_path: Union[str, Path]):
+    def __init__(self, file_path: str | Path):
         self.base_dataset = hs.load(file_path)
         self.chemical_maps = self.base_dataset.data.astype(np.float32)
         self.intensity_map = self.base_dataset.data.sum(axis=2).astype(np.float32)

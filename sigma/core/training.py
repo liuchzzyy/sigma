@@ -1,15 +1,16 @@
-import os
 import datetime
-from typing import Dict, Optional, List, Union
+import os
+
 import numpy as np
+import seaborn as sns
 import torch
-import torch.nn as nn
+from matplotlib import pyplot as plt
+from torch import nn
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from tqdm.notebook import tqdm_notebook as tqdm
-from matplotlib import pyplot as plt
-import seaborn as sns
+
 from sigma.core.data import FeatureDataset
 
 
@@ -18,7 +19,7 @@ class Experiment:
         self,
         descriptor: str,
         general_results_dir: str,
-        model: Union[nn.Module, type],
+        model: nn.Module | type,
         model_args: dict,
         chosen_dataset: np.ndarray,
         save_model_every_epoch: bool = False,
@@ -83,7 +84,7 @@ class Experiment:
         criterion: str = "MSE",
         KLD_lambda: float = 1e-4,
         print_latent: bool = False,
-        lr_scheduler_args: Dict = {
+        lr_scheduler_args: dict = {
             "factor": 0.5,
             "verbose": True,
             "patience": 5,
@@ -126,8 +127,8 @@ class Experiment:
             # self.dataset_test = utils.FeatureDataset(self.chosen_dataset,'test')
 
         # Tracking losses and evaluation results
-        self.train_loss = np.zeros((self.num_epochs + 1))
-        self.test_loss = np.zeros((self.num_epochs + 1))
+        self.train_loss = np.zeros(self.num_epochs + 1)
+        self.test_loss = np.zeros(self.num_epochs + 1)
 
         # For early stopping
         self.initial_patience = patience

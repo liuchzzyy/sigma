@@ -1,5 +1,6 @@
 import torch
-import torch.nn as nn
+from torch import nn
+
 
 class AutoEncoder(nn.Module):
     def __init__(self, in_channel: int, hidden_layer_sizes=(512, 256, 128)):

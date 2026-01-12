@@ -1,28 +1,27 @@
-from sigma.utils import visualisation as visual
-from sigma.processing.segmentation import PixelSegmenter
-from sigma.utils.load import SEMDataset, IMAGEDataset, PIXLDataset
-from sigma.utils.loadtem import TEMDataset
-from sigma.utils.physics import k_factors_120kV
-
 import os
 import random
+
+import altair as alt
+import hyperspy.api as hs
+import ipywidgets as widgets
+import matplotlib as mpl
 import numpy as np
 import pandas as pd
-from typing import List, Dict, Union
-import hyperspy.api as hs
-from matplotlib import pyplot as plt
-import matplotlib as mpl
-from matplotlib import cm, colors
-from skimage.transform import resize
-import seaborn as sns
-import altair as alt
 import plotly.graph_objects as go
-import ipywidgets as widgets
-from ipywidgets import Layout
+import seaborn as sns
 from IPython.display import display
+from ipywidgets import Layout
+from matplotlib import cm
+from matplotlib import pyplot as plt
 
 # to make sure the plot function works
 from plotly.offline import init_notebook_mode
+
+from sigma.processing.segmentation import PixelSegmenter
+from sigma.utils import visualisation as visual
+from sigma.utils.load import IMAGEDataset, PIXLDataset, SEMDataset
+from sigma.utils.loadtem import TEMDataset
+from sigma.utils.physics import k_factors_120kV
 
 init_notebook_mode(connected=True)
 
@@ -370,7 +369,7 @@ def view_im_dataset(im):
     display(tab)
 
 
-def view_rgb(dataset: Union[SEMDataset, TEMDataset, IMAGEDataset]):
+def view_rgb(dataset: SEMDataset | TEMDataset | IMAGEDataset):
     option_dict = {}
     if isinstance(dataset.normalised_elemental_data, np.ndarray):
         option_dict["normalised"] = dataset.normalised_elemental_data
@@ -467,8 +466,8 @@ def view_rgb(dataset: Union[SEMDataset, TEMDataset, IMAGEDataset]):
 
 
 def view_pixel_distributions(
-    dataset: Union[SEMDataset, TEMDataset, IMAGEDataset],
-    norm_list: List = [],
+    dataset: SEMDataset | TEMDataset | IMAGEDataset,
+    norm_list: list = [],
     cmap: str = "viridis",
 ):
     peak_options = dataset.feature_list
@@ -508,7 +507,7 @@ def view_bic(
     latent: np.ndarray,
     n_components: int = 20,
     model: str = "BayesianGaussianMixture",
-    model_args: Dict = {"random_state": 6},
+    model_args: dict = {"random_state": 6},
 ):
     bic_list = PixelSegmenter.bic(latent, n_components, model, model_args)
     fig = go.Figure(
@@ -622,7 +621,7 @@ def check_latent_space(ps: PixelSegmenter, ratio_to_be_shown=0.25, show_map=Fals
     for i in range(ps.n_components):
         r, g, b = cm.get_cmap(ps.color_palette)(i * (ps.n_components - 1) ** -1)[:3]
         r, g, b = int(r * 255), int(g * 255), int(b * 255)
-        color = "#{:02x}{:02x}{:02x}".format(r, g, b)
+        color = f"#{r:02x}{g:02x}{b:02x}"
         phase_colors.append(color)
 
     domain = [i for i in range(ps.n_components)]
@@ -1251,7 +1250,7 @@ def view_emi_dataset(tem, search_energy=True):
 def show_abundance_map(
     ps: PixelSegmenter, weights: pd.DataFrame, components: pd.DataFrame
 ):
-    def plot_rgb(ps, phases: List):
+    def plot_rgb(ps, phases: list):
         shape = ps.get_binary_map_spectra_profile(0)[0].shape
         img = np.zeros((shape[0], shape[1], 3))
 

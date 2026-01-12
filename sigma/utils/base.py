@@ -1,20 +1,14 @@
-import os
-import numpy as np
-import hyperspy.api as hs
-
-from typing import Union, Tuple, List
 from pathlib import Path
-from PIL import Image
-from os.path import isfile, join
-from skimage.transform import resize
+
+import hyperspy.api as hs
+import numpy as np
 from exspy.signals import EDSSEMSpectrum
-from hyperspy.signals import Signal2D
 
 hs.preferences.GUIs.warn_if_guis_are_missing = False
 hs.preferences.save()
         
-class BaseDataset(object):
-    def __init__(self, file_path: Union[str, Path]):
+class BaseDataset:
+    def __init__(self, file_path: str | Path):
         self.base_dataset = hs.load(file_path)
         self.nav_img = None
         self.spectra = None

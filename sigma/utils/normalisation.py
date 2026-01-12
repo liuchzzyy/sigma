@@ -1,5 +1,7 @@
-import numpy as np
 import itertools
+
+import numpy as np
+
 
 def neighbour_averaging(dataset: np) -> np:
     h, w = dataset.shape[0], dataset.shape[1]

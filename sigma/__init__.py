@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
-from sigma import models
-from sigma import gui
-from sigma import utils
+from sigma import gui, models, utils
 
 __all__ = [
     "models",

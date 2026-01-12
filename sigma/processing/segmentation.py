@@ -1,42 +1,38 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
-from sigma.utils.load import SEMDataset, IMAGEDataset, PIXLDataset
-from sigma.utils.loadtem import TEMDataset
-from sigma.utils.visualisation import make_colormap
-from sigma.utils.physics import k_factors_120kV
-from sigma.utils.signal import fft_denoise2d
 
-from typing import List, Dict, Union
-import hyperspy.api as hs
 import exspy
+import matplotlib as mpl
+import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+import seaborn as sns
+from matplotlib.patches import Ellipse
+from skimage import measure
+from skimage.transform import resize
+from sklearn.cluster import HDBSCAN, Birch, KMeans
+from sklearn.decomposition import NMF
 
 # import hdbscan
-from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
-from sklearn.decomposition import NMF
-from sklearn.cluster import KMeans, Birch, HDBSCAN
-from skimage import measure
-from scipy import fftpack
-from skimage.transform import resize
+from sklearn.mixture import BayesianGaussianMixture, GaussianMixture
 
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-from matplotlib.patches import Ellipse
-import matplotlib.colors as mcolors
-import seaborn as sns
-import plotly.graph_objects as go
-import plotly.express as px
+from sigma.utils.load import IMAGEDataset, PIXLDataset, SEMDataset
+from sigma.utils.loadtem import TEMDataset
+from sigma.utils.physics import k_factors_120kV
+from sigma.utils.signal import fft_denoise2d
+from sigma.utils.visualisation import make_colormap
 
 
-class PixelSegmenter(object):
+class PixelSegmenter:
     def __init__(
         self,
         latent: np.ndarray,
-        dataset: Union[SEMDataset, TEMDataset, IMAGEDataset],
+        dataset: SEMDataset | TEMDataset | IMAGEDataset,
         method: str = "BayesianGaussianMixture",
-        method_args: Dict = {"n_components": 8, "random_state": 4},
+        method_args: dict = {"n_components": 8, "random_state": 4},
     ):
         self.latent = latent
         self.dataset = dataset
@@ -439,8 +435,8 @@ class PixelSegmenter(object):
     def cluster_quantification(
         self,
         cluster_num: int,
-        elements: List,
-        k_factors: List[float] = None,
+        elements: list,
+        k_factors: list[float] = None,
         composition_units: str = "atomic",
         use_label: bool = True,
     ) -> pd.DataFrame:
@@ -952,16 +948,15 @@ class PixelSegmenter(object):
                 if self.dataset.nav_img_bin
                 else self.dataset.nav_img.data
             )
+        elif (
+            self.dataset.intensity_map.shape[:2]
+            != self.dataset.chemical_maps.shape[:2]
+        ):  # if size of intensity map is different from chemical maps
+            nav_img = resize(
+                self.dataset.intensity_map, self.dataset.chemical_maps.shape[:2]
+            )
         else:
-            if (
-                self.dataset.intensity_map.shape[:2]
-                != self.dataset.chemical_maps.shape[:2]
-            ):  # if size of intensity map is different from chemical maps
-                nav_img = resize(
-                    self.dataset.intensity_map, self.dataset.chemical_maps.shape[:2]
-                )
-            else:
-                nav_img = self.dataset.intensity_map
+            nav_img = self.dataset.intensity_map
         axs[1].imshow(nav_img, cmap="gray", interpolation="none", alpha=0.9)
         axs[1].scatter(
             binary_map_indices[1], binary_map_indices[0], c="r", alpha=0.2, s=1.5
@@ -1034,14 +1029,14 @@ class PixelSegmenter(object):
                         np.arange(
                             0,
                             int(intensity.max().round()) + 1,
-                            step=int((intensity.max().round() / 5)),
+                            step=int(intensity.max().round() / 5),
                         )
                     )
                     axs[2].set_yticklabels(
                         np.arange(
                             0,
                             int(intensity.max().round()) + 1,
-                            step=int((intensity.max().round() / 5)),
+                            step=int(intensity.max().round() / 5),
                         ),
                         fontsize=8,
                     )
@@ -1195,12 +1190,12 @@ class PixelSegmenter(object):
         fig, axs = plt.subplots(1, 1, figsize=(4, 2), dpi=150)
         axs.set_xticks(np.arange(0, 12, step=1))
         axs.set_yticks(
-            np.arange(0, int(intensity.max()) + 1, step=int((intensity.max() / 5)))
+            np.arange(0, int(intensity.max()) + 1, step=int(intensity.max() / 5))
         )
 
         axs.set_xticklabels(np.arange(0, 12, step=1), fontsize=8)
         axs.set_yticklabels(
-            np.arange(0, int(intensity.max()) + 1, step=int((intensity.max() / 5))),
+            np.arange(0, int(intensity.max()) + 1, step=int(intensity.max() / 5)),
             fontsize=8,
         )
 

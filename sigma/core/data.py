@@ -1,10 +1,10 @@
-# -*- coding: utf-8 -*-
 
-import torch
 import random
+
 import numpy as np
-from torch.utils.data import Dataset
+import torch
 from sklearn.model_selection import train_test_split
+from torch.utils.data import Dataset
 
 
 def same_seeds(seed):

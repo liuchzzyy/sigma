@@ -1,19 +1,17 @@
-from sigma.utils.load import SEMDataset, IMAGEDataset, PIXLDataset
-from sigma.utils.loadtem import TEMDataset
 
-import hyperspy.api as hs
 import exspy
-import numpy as np
-import pandas as pd
 import matplotlib as mpl
 import matplotlib.colors as mcolors
-import seaborn as sns
+import numpy as np
+import pandas as pd
 import plotly.graph_objects as go
-from typing import Union, List, Tuple
+import seaborn as sns
 from exspy.signals import EDSSEMSpectrum, EDSTEMSpectrum
 from matplotlib import pyplot as plt
-
 from plotly.offline import init_notebook_mode
+
+from sigma.utils.load import IMAGEDataset, PIXLDataset, SEMDataset
+from sigma.utils.loadtem import TEMDataset
 
 init_notebook_mode(connected=True)
 
@@ -172,7 +170,7 @@ def plot_intensity_maps(spectra, element_list, colors=[], save=None):
     return fig
 
 
-def plot_rgb(dataset:Union[SEMDataset, TEMDataset, IMAGEDataset], elemental_maps:np.ndarray, elements:List=[]):
+def plot_rgb(dataset:SEMDataset | TEMDataset | IMAGEDataset, elemental_maps:np.ndarray, elements:list=[]):
     assert len(elements) < 4
     if not elements:
         elements = dataset.feature_list[:3]
@@ -193,7 +191,7 @@ def plot_rgb(dataset:Union[SEMDataset, TEMDataset, IMAGEDataset], elemental_maps
 
 
 def plot_pixel_distributions(
-    dataset:Union[SEMDataset, TEMDataset, IMAGEDataset], norm_list:List=[], peak:str="Fe_Ka", cmap:str="viridis"
+    dataset:SEMDataset | TEMDataset | IMAGEDataset, norm_list:list=[], peak:str="Fe_Ka", cmap:str="viridis"
 ):
     idx = dataset.feature_dict[peak]
     sns.set_style("ticks")
