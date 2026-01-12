@@ -7,8 +7,8 @@ from pathlib import Path
 from PIL import Image, ImageOps
 from os.path import isfile, join
 from skimage.transform import resize
-from hyperspy._signals.eds_sem import EDSSEMSpectrum
-from hyperspy._signals.signal2d import Signal2D
+from exspy.signals import EDSSEMSpectrum
+from hyperspy.signals import Signal2D
 from .base import BaseDataset
 
 class SEMDataset(BaseDataset):

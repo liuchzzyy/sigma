@@ -24,6 +24,7 @@ dependencies = [
     "notebook>=7.5.0",
     "torch>=2.9.0",
     "hyperspy>=2.3.0",
+    "exspy>=0.3.0",
     "ipywidgets>=8.1.8",
     "lmfit>=1.3.4",
     "matplotlib>=3.10.0",

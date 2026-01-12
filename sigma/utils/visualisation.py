@@ -2,6 +2,7 @@ from sigma.utils.load import SEMDataset, IMAGEDataset, PIXLDataset
 from sigma.utils.loadtem import TEMDataset
 
 import hyperspy.api as hs
+import exspy
 import numpy as np
 import pandas as pd
 import matplotlib as mpl
@@ -9,8 +10,7 @@ import matplotlib.colors as mcolors
 import seaborn as sns
 import plotly.graph_objects as go
 from typing import Union, List, Tuple
-from hyperspy._signals.eds_sem import EDSSEMSpectrum
-from hyperspy.signals import EDSTEMSpectrum
+from exspy.signals import EDSSEMSpectrum, EDSTEMSpectrum
 from matplotlib import pyplot as plt
 
 from plotly.offline import init_notebook_mode
@@ -18,14 +18,16 @@ from plotly.offline import init_notebook_mode
 init_notebook_mode(connected=True)
 
 peak_dict = dict()
-for element in hs.material.elements:
+for element in exspy.material.elements:
     if element[0] == "Li":
         continue
-    for character in element[1].Atomic_properties.Xray_lines:
-        peak_name = element[0]
-        char_name = character[0]
-        key = f"{peak_name}_{char_name}"
-        peak_dict[key] = character[1].energy_keV
+    # Check if the element has Xray_lines
+    if hasattr(element[1], 'Atomic_properties') and hasattr(element[1].Atomic_properties, 'Xray_lines'):
+        for character in element[1].Atomic_properties.Xray_lines:
+            peak_name = element[0]
+            char_name = character[0]
+            key = f"{peak_name}_{char_name}"
+            peak_dict[key] = character[1].energy_keV
 
 
 def make_colormap(seq):
