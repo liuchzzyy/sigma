@@ -8,7 +8,7 @@ We use modern Python tooling. DO NOT use legacy tools like `pip` directly or `se
 
 - **Package Manager**: [uv](https://github.com/astral-sh/uv)
 - **Build Backend**: `hatchling`
-- **Python Version**: `>=3.10`
+- **Python Version**: `>=3.11`
 - **Linting**: `ruff`
 - **Formatting**: `ruff format`
 - **Type Checking**: `pyright` (via `uv run pyright` or VS Code extension)
@@ -23,7 +23,7 @@ We use modern Python tooling. DO NOT use legacy tools like `pip` directly or `se
 | **Format** | `uv run ruff format .` | Formats code to standard style |
 | **Type Check** | `uv run pyright` | Strict type checking |
 | **Test** | `uv run pytest` | Runs all tests |
-| **Single Test** | `uv run pytest tests/test_signal.py` | Run specific test file |
+| **Single Test** | `uv run pytest tests/test_smoke.py` | Run specific test file |
 
 ## 2. Project Structure
 
@@ -80,6 +80,7 @@ def process_image(image: np.ndarray, threshold: float = 0.5) -> np.ndarray:
 - All new features MUST be accompanied by a test in `tests/`.
 - Use `pytest` fixtures for common setup (e.g., creating dummy datasets).
 - Mock external dependencies (like heavy `hyperspy` loads) if they are slow or require large files.
+- **Warning Suppression**: Upstream deprecation warnings from `hyperspy` and `rsciio` are suppressed in `pyproject.toml`. Do not remove these filters unless the libraries are updated to fix them.
 
 ## 5. Deprecation & Compatibility
 
@@ -96,7 +97,8 @@ def process_image(image: np.ndarray, threshold: float = 0.5) -> np.ndarray:
 
 - **Hyperspy**: Used for handling spectral data. Ensure versions `>=2.3.0`.
 - **Torch**: Use device-agnostic code (`device = "cuda" if torch.cuda.is_available() else "cpu"`).
-- **Numpy**: Avoid `np.matrix`; use `np.array`. Be aware of version `<2.0.0` constraint for Numba compatibility.
+- **Numpy**: Avoid `np.matrix`; use `np.array`. Be aware of version `<2.0.0` constraint for Numba compatibility (though modern Numba may support 2.0).
+- **Numba**: Explicitly required (`>=0.9.0` per pyproject.toml) for acceleration in some modules.
 
 ## 7. Workflow for Agents
 

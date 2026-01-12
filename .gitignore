@@ -35,6 +35,13 @@ venv.bak/
 # uv
 uv.lock
 
+# Caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
 # Jupyter Notebook
 .ipynb_checkpoints/
 

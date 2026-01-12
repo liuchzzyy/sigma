@@ -26,7 +26,6 @@ dependencies = [
     "hyperspy>=2.3.0",
     "exspy>=0.3.0",
     "ipywidgets>=8.1.8",
-    "lmfit>=1.3.4",
     "matplotlib>=3.10.0",
     "numpy>=2.0.0",
     "numba>=0.9.0",
@@ -38,9 +37,10 @@ dependencies = [
     "plotly>=6.5.0",
     "altair>=6.0.0",
     "jupyterlab>=4.5.0",
-    "jupyter-dash>=0.4.2",
-    "Werkzeug>=3.1.0",
-    "Flask>=3.1.0",
+    "pandas>=2.0.0",
+    "scikit-image>=0.22.0",
+    "pillow>=10.0.0",
+    "ipython>=8.0.0",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -63,8 +63,23 @@ include = ["sigma"]
 pythonVersion = "3.11"
 typeCheckingMode = "basic"
 
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:.*append2pathname.*:UserWarning",
+    "ignore:.*incremental_filename.*:UserWarning",
+    "ignore:.*ensure_directory.*:UserWarning",
+    "ignore:.*overwrite.*:UserWarning",
+    "ignore:.*get_file_handle.*:UserWarning",
+    "ignore:.*rsciio.utils.rgb_tools.*:UserWarning",
+    "ignore:.*scipy.odr.*:DeprecationWarning",
+    "ignore:.*moved to `rsciio.utils.path`.*:Warning",
+    "ignore:.*renamed to `rsciio.utils.rgb`.*:Warning",
+    "ignore:.*moved to `rsciio.utils.file`.*:Warning",
+]
+
 [dependency-groups]
 dev = [
     "pyright>=1.1.408",
+    "pytest>=9.0.2",
     "ruff>=0.14.11",
 ]
