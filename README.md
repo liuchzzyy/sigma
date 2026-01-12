@@ -16,20 +16,30 @@
 This project has received funding from the European Union's Horizon 2020 research and innovation programme under grant agreement No 101005611: [**The EXCITE Network**](https://excite-network.eu/). If analysis using SIGMA forms a part of published work please cite the [manuscript](https://doi.org/10.1029/2022GC010530).
 
 ## Installation
-1. Create a [**Python>=3.10**](https://www.python.org/) environment with [**conda**](https://docs.conda.io/en/latest/):
+
+Recommended installation using [uv](https://github.com/astral-sh/uv):
+
 ```bash
-conda create -n sigma python=3.10
-conda activate sigma
+# Clone the repository
+git clone https://github.com/poyentung/sigma.git
+cd sigma
+
+# Install dependencies and the package
+uv sync
 ```
 
-2. Install **SIGMA** with [**pip**](https://pypi.org/project/pip/):
+Alternatively, you can install the package via pip:
 ```bash
 pip install emsigma
 ```
 
-3. Use the notebook in the tutorial folder to run **SIGMA**.
+**Requirements:** Python >= 3.11
+
+## Usage
+
+To run **SIGMA**, use the notebook in the tutorial folder:
 ```bash
-jupyter-lab
+uv run jupyter lab
 ```
 
 ## Workflow of SIGMA

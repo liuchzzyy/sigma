@@ -1,41 +1,8 @@
+# Python
 __pycache__/
-
-.ipynb_checkpoints/
-.spyproject/config/
-.ipynb
-tutorial_stem_edx.ipynb
-tutorial_stem_image.ipynb
-tutorial/EDX3.bcf
-tutorial/test_data/
-*.emd
-tutorial/map01_15kV_30um_ss4_13mm_13min.bcf
-tutorial/Dourbes_1.hspy
-tutorial/Dourbes_2.hspy
-
-# Compiled source #
-###################
-*.com
-*.class
-*.dll
-*.exe
-*.o
+*.py[cod]
+*$py.class
 *.so
-
-
-# Packages #
-############
-# it's better to unpack these files and commit the raw source
-# git has its own built in compression methods
-*.7z
-*.dmg
-*.gz
-*.iso
-*.jar
-*.rar
-*.tar
-*.zip
-
-# Distribution / packaging
 .Python
 build/
 develop-eggs/
@@ -48,18 +15,47 @@ lib64/
 parts/
 sdist/
 var/
+wheels/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
-# Logs and databases #
-######################
-*.log
-*.sql
-*.sqlite
+# Virtual Environments
+venv/
+.venv/
+env/
+.env/
+ENV/
+env.bak/
+venv.bak/
 
-# OS generated files #
-######################
+# uv
+uv.lock
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project specific
+.spyproject/
+tutorial/EDX3.bcf
+tutorial/map01_15kV_30um_ss4_13mm_13min.bcf
+tutorial/Dourbes_1.hspy
+tutorial/Dourbes_2.hspy
+*.emd
+*.emi
+*.ser
+results/
+Model*
+
+# OS generated files
 .DS_Store
 .DS_Store?
 ._*
@@ -68,10 +64,5 @@ var/
 ehthumbs.db
 Thumbs.db
 
-# Autoencoder models #
-Model*
-results/
-
-# STEM files
-*.emi
-*.ser
+# Logs
+*.log

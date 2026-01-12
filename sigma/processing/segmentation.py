@@ -4,12 +4,14 @@
 from sigma.utils.load import SEMDataset, IMAGEDataset, PIXLDataset
 from sigma.utils.loadtem import TEMDataset
 from sigma.utils.visualisation import make_colormap
-from sigma.src.utils import k_factors_120kV
+from sigma.utils.physics import k_factors_120kV
+from sigma.utils.signal import fft_denoise2d
 
 from typing import List, Dict, Union
 import hyperspy.api as hs
 import numpy as np
 import pandas as pd
+
 # import hdbscan
 from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
 from sklearn.decomposition import NMF
@@ -35,7 +37,6 @@ class PixelSegmenter(object):
         method: str = "BayesianGaussianMixture",
         method_args: Dict = {"n_components": 8, "random_state": 4},
     ):
-
         self.latent = latent
         self.dataset = dataset
         self.dataset_norm = dataset.normalised_elemental_data
@@ -45,7 +46,7 @@ class PixelSegmenter(object):
         self.width = self.dataset_norm.shape[1]
 
         # Set spectra and nav_img signal to the corresponding ones
-        if type(dataset) not in [IMAGEDataset, PIXLDataset]:
+        if not isinstance(dataset, (IMAGEDataset, PIXLDataset)):
             if self.dataset.spectra_bin is not None:
                 self.spectra = self.dataset.spectra_bin
             else:
@@ -78,11 +79,11 @@ class PixelSegmenter(object):
         elif self.method == "HDBSCAN":
             self.model = HDBSCAN(**method_args)
             self.labels = self.model.fit_predict(self.latent)
-            self.n_components = int(self.labels.max()) + 1 
-            
+            self.n_components = int(self.labels.max()) + 1
+
         if self.method != "HDBSCAN":
             self.labels = self.model.predict(self.latent)
-            
+
         ### calculate cluster probability maps ###
         means = []
         dataset_ravel = self.dataset_norm.reshape(-1, self.dataset_norm.shape[2])
@@ -192,25 +193,7 @@ class PixelSegmenter(object):
                     filtered_img = np.where(phase < threshold, 0, 1).reshape(
                         self.height, self.width
                     )
-                    image_fft = fftpack.fft2(filtered_img)
-                    image_fft2 = image_fft.copy()
-
-                    # Set r and c to be the number of rows and columns of the array.
-                    r, c = image_fft2.shape
-
-                    # Set to zero all rows with indices between r*keep_fraction and
-                    # r*(1-keep_fraction):
-                    image_fft2[
-                        int(r * keep_fraction) : int(r * (1 - keep_fraction))
-                    ] = 0
-
-                    # Similarly with the columns:
-                    image_fft2[
-                        :, int(c * keep_fraction) : int(c * (1 - keep_fraction))
-                    ] = 0
-
-                    # Transformed the filtered image back to real space
-                    image_new = fftpack.ifft2(image_fft2).real
+                    image_new = fft_denoise2d(filtered_img, keep_fraction)
 
                     binary_map = np.where(image_new < binary_filter_threshold, 0, 1)
                     binary_map_indices = np.where(image_new > binary_filter_threshold)
@@ -236,10 +219,12 @@ class PixelSegmenter(object):
         x_y = np.concatenate([x_id, y_id], axis=1)
         x_y_indices = tuple(map(tuple, x_y))
 
-        if type(self.dataset) not in [IMAGEDataset,PIXLDataset]:
+        if not isinstance(self.dataset, (IMAGEDataset, PIXLDataset)):
             total_spectra_profiles = list()
             for x_y_index in x_y_indices:
-                total_spectra_profiles.append(self.spectra.data[x_y_index].reshape(1, -1))
+                total_spectra_profiles.append(
+                    self.spectra.data[x_y_index].reshape(1, -1)
+                )
             total_spectra_profiles = np.concatenate(total_spectra_profiles, axis=0)
 
             size = self.spectra.axes_manager[2].size
@@ -255,7 +240,9 @@ class PixelSegmenter(object):
         else:
             total_spectra_profiles = list()
             for x_y_index in x_y_indices:
-                total_spectra_profiles.append(self.dataset.chemical_maps[x_y_index].reshape(1, -1))
+                total_spectra_profiles.append(
+                    self.dataset.chemical_maps[x_y_index].reshape(1, -1)
+                )
             total_spectra_profiles = np.concatenate(total_spectra_profiles, axis=0)
 
             energy_axis = self.dataset.feature_list
@@ -287,7 +274,6 @@ class PixelSegmenter(object):
         method="NMF",
         method_args={},
     ):
-
         if clusters_to_be_calculated != "All":
             num_inputs = len(clusters_to_be_calculated)
         else:
@@ -333,7 +319,6 @@ class PixelSegmenter(object):
         binary_filter_threshold=0.2,
         **binary_filter_args,
     ):
-
         phase = self.model.predict_proba(self.latent)[:, cluster_num]
 
         if denoise == False:
@@ -345,21 +330,7 @@ class PixelSegmenter(object):
             filtered_img = np.where(phase < threshold, 0, 1).reshape(
                 self.height, self.width
             )
-            image_fft = fftpack.fft2(filtered_img)
-            image_fft2 = image_fft.copy()
-
-            # Set r and c to be the number of rows and columns of the array.
-            r, c = image_fft2.shape
-
-            # Set to zero all rows with indices between r*keep_fraction and
-            # r*(1-keep_fraction):
-            image_fft2[int(r * keep_fraction) : int(r * (1 - keep_fraction))] = 0
-
-            # Similarly with the columns:
-            image_fft2[:, int(c * keep_fraction) : int(c * (1 - keep_fraction))] = 0
-
-            # Transformed the filtered image back to real space
-            image_new = fftpack.ifft2(image_fft2).real
+            image_new = fft_denoise2d(filtered_img, keep_fraction)
 
             binary_map_indices = np.where(image_new > binary_filter_threshold)
 
@@ -386,7 +357,7 @@ class PixelSegmenter(object):
         binary_map : np.array
             The filtered binary map for analysis.
         element_peaks : dict(), optional
-            Determine whether the output includes the elemental intensity from 
+            Determine whether the output includes the elemental intensity from
             the origianl spectra signal. The default is ['Fe_Ka','O_Ka'].
         binary_filter_args : dict()
             Determine the parameters to generate the binary for the analysis.
@@ -436,7 +407,7 @@ class PixelSegmenter(object):
                 for prop in prop_list:
                     if prop == "area":
                         stat_info[f"{prop} (um^2)"] = [
-                            cluster[prop] * pixel_to_um ** 2 for cluster in clusters
+                            cluster[prop] * pixel_to_um**2 for cluster in clusters
                         ]
 
                     elif prop in [
@@ -461,38 +432,45 @@ class PixelSegmenter(object):
                     ]
 
         return pd.DataFrame(data=stat_info).round(3)
-    
-    def cluster_quantification(self,
-                               cluster_num:int,
-                               elements:List,
-                               k_factors:List[float]=None,
-                               composition_units:str='atomic',
-                               use_label:bool=True)-> pd.DataFrame:
-        
+
+    def cluster_quantification(
+        self,
+        cluster_num: int,
+        elements: List,
+        k_factors: List[float] = None,
+        composition_units: str = "atomic",
+        use_label: bool = True,
+    ) -> pd.DataFrame:
         # get indices of the specified cluster
-        binary_map, binary_map_indices, _ = self.get_binary_map_spectra_profile(cluster_num=cluster_num,use_label=use_label)
+        binary_map, binary_map_indices, _ = self.get_binary_map_spectra_profile(
+            cluster_num=cluster_num, use_label=use_label
+        )
         indices = np.column_stack(binary_map_indices)
         indices = tuple(map(tuple, indices))
-        
+
         # set elements for quantification
         spectra_raw = self.dataset.spectra_raw
         spectra_raw.metadata.Sample.xray_lines = elements
         intensities = spectra_raw.get_lines_intensity()
-        
+
         if k_factors is None:
             try:
                 k_factors = [k_factors_120kV[el] for el in elements]
             except KeyError:
-                print('The k factor is not in the database.')
-        
-        compositions = spectra_raw.quantification(intensities, method='CL',factors=k_factors,composition_units='atomic')
-        cluster_element_intensities = [c.data[binary_map.astype(bool)] for c in compositions]
-        cluster_element_intensities = np.column_stack(cluster_element_intensities)
-        
-        return pd.DataFrame(cluster_element_intensities, columns = [el.split('_')[0] for el in elements])
+                print("The k factor is not in the database.")
 
-        
-        
+        compositions = spectra_raw.quantification(
+            intensities, method="CL", factors=k_factors, composition_units="atomic"
+        )
+        cluster_element_intensities = [
+            c.data[binary_map.astype(bool)] for c in compositions
+        ]
+        cluster_element_intensities = np.column_stack(cluster_element_intensities)
+
+        return pd.DataFrame(
+            cluster_element_intensities, columns=[el.split("_")[0] for el in elements]
+        )
+
     #################
     # Visualization #--------------------------------------------------------------
     #################
@@ -575,7 +553,13 @@ class PixelSegmenter(object):
         # Draw the Ellipse
         for nsig in range(1, 3):
             ax.add_patch(
-                Ellipse(position, width=nsig*width, height=nsig*height, angle=angle, **kwargs)
+                Ellipse(
+                    position,
+                    width=nsig * width,
+                    height=nsig * height,
+                    angle=angle,
+                    **kwargs,
+                )
             )
 
     def plot_cluster_distribution(self, save=None, **kwargs):
@@ -654,7 +638,7 @@ class PixelSegmenter(object):
         else:
             prob_map_i = np.where(self.labels == cluster_num, 1, 0)
             if self.method == "HDBSCAN":
-                prob_map_i = prob_map_i*self.prob_map
+                prob_map_i = prob_map_i * self.prob_map
         im = axs[0].imshow(prob_map_i.reshape(self.height, self.width), cmap="viridis")
         axs[0].set_title("Pixel-wise probability for cluster " + str(cluster_num))
 
@@ -679,47 +663,65 @@ class PixelSegmenter(object):
                     cluster_num * (self.n_components - 1) ** -1
                 ),
             )
-            
+
         for i in range(len(self.dataset.feature_list)):
-            y = self.mu[cluster_num][i]+self.mu[cluster_num].max()*0.03 if self.mu[cluster_num][i]>0 else self.mu[cluster_num][i]-self.mu[cluster_num].max()*0.08
-            axs[1].text(i-len(self.dataset.feature_list[i])*0.11,y,self.dataset.feature_list[i], fontsize=8)
-            
+            y = (
+                self.mu[cluster_num][i] + self.mu[cluster_num].max() * 0.03
+                if self.mu[cluster_num][i] > 0
+                else self.mu[cluster_num][i] - self.mu[cluster_num].max() * 0.08
+            )
+            axs[1].text(
+                i - len(self.dataset.feature_list[i]) * 0.11,
+                y,
+                self.dataset.feature_list[i],
+                fontsize=8,
+            )
+
         axs[1].set_xticks([])
         axs[1].set_xticklabels([])
         # axs[1].set_xticklabels(self.dataset.feature_list, fontsize=8)
-        
-        for axis in ['top','right']:
+
+        for axis in ["top", "right"]:
             axs[1].spines[axis].set_linewidth(0)
-        
-        if (self.mu[cluster_num]<0).any():
-            axs[1].set_ylim(self.mu[cluster_num].min()*1.2, self.mu[cluster_num].max()*1.2)
-            axs[1].spines['bottom'].set_position(('data',0.0))
+
+        if (self.mu[cluster_num] < 0).any():
+            axs[1].set_ylim(
+                self.mu[cluster_num].min() * 1.2, self.mu[cluster_num].max() * 1.2
+            )
+            axs[1].spines["bottom"].set_position(("data", 0.0))
         else:
-            axs[1].set_ylim(None, self.mu[cluster_num].max()*1.2)
-            
+            axs[1].set_ylim(None, self.mu[cluster_num].max() * 1.2)
+
         axs[1].set_title("Mean feature value for cluster " + str(cluster_num))
 
-        
-        if type(self.dataset) in [IMAGEDataset, PIXLDataset]:
-            chemical_maps = self.dataset.chemical_maps if self.dataset.chemical_maps_bin is None else self.dataset.chemical_maps_bin
-            avg_intensity = chemical_maps.mean(axis=(0,1)).astype(np.float32) 
-            _, num_pixels, spectra_profile = self.get_binary_map_spectra_profile(cluster_num)
+        if isinstance(self.dataset, (IMAGEDataset, PIXLDataset)):
+            chemical_maps = (
+                self.dataset.chemical_maps
+                if self.dataset.chemical_maps_bin is None
+                else self.dataset.chemical_maps_bin
+            )
+            avg_intensity = chemical_maps.mean(axis=(0, 1)).astype(np.float32)
+            _, num_pixels, spectra_profile = self.get_binary_map_spectra_profile(
+                cluster_num
+            )
             num_pixels = len(num_pixels[0])
-            mean_intensity = spectra_profile["intensity"].to_numpy(dtype=np.float32) / num_pixels
+            mean_intensity = (
+                spectra_profile["intensity"].to_numpy(dtype=np.float32) / num_pixels
+            )
 
             # plot average signal of the entire dataset
             axs[2].bar(
-                    self.dataset.feature_list,
-                    avg_intensity,
-                    width=0.7,
-                    facecolor='None',
-                    edgecolor=sns.color_palette()[0],
-                    linestyle="dotted",
-                    linewidth=1,
-                    zorder=10,
-                    label="Avg. raw spectrum",
-                )
-            
+                self.dataset.feature_list,
+                avg_intensity,
+                width=0.7,
+                facecolor="None",
+                edgecolor=sns.color_palette()[0],
+                linestyle="dotted",
+                linewidth=1,
+                zorder=10,
+                label="Avg. raw spectrum",
+            )
+
             if self.n_components <= 10:
                 axs[2].bar(
                     self.dataset.feature_list,
@@ -740,33 +742,45 @@ class PixelSegmenter(object):
                 )
 
             for i in range(len(self.dataset.feature_list)):
-                y = mean_intensity[i] + mean_intensity.max()*0.03
-                y_avg = avg_intensity[i] + mean_intensity.max()*0.03
-                y = max(y,y_avg)
-                axs[2].text(i-len(self.dataset.feature_list[i])*0.11,y,self.dataset.feature_list[i], fontsize=8)
-                
-            axs[2].set_ylim(None, max(mean_intensity.max(), avg_intensity.max())*1.2)
+                y = mean_intensity[i] + mean_intensity.max() * 0.03
+                y_avg = avg_intensity[i] + mean_intensity.max() * 0.03
+                y = max(y, y_avg)
+                axs[2].text(
+                    i - len(self.dataset.feature_list[i]) * 0.11,
+                    y,
+                    self.dataset.feature_list[i],
+                    fontsize=8,
+                )
+
+            axs[2].set_ylim(None, max(mean_intensity.max(), avg_intensity.max()) * 1.2)
             axs[2].set_xticks([])
             axs[2].set_xticklabels([])
             # axs[2].set_xticklabels(self.dataset.feature_list, fontsize=8)
             axs[2].set_title("Mean raw signal for cluster " + str(cluster_num))
-            
+
             legend_properties = {"size": 8}
             axs[2].legend(
                 loc="best", handletextpad=0.5, frameon=False, prop=legend_properties
             )
-                
+
         else:
-            sum_spectrum = self.dataset.spectra_bin if self.dataset.spectra_bin else self.dataset.spectra
+            sum_spectrum = (
+                self.dataset.spectra_bin
+                if self.dataset.spectra_bin
+                else self.dataset.spectra
+            )
             intensity_sum = sum_spectrum.sum().data / sum_spectrum.sum().data.max()
 
             try:
                 spectra_profile = self.get_binary_map_spectra_profile(cluster_num)[2]
             except ValueError:
-                print(f'warning: no pixel is assigned to cpnt_{cluster_num}')
+                print(f"warning: no pixel is assigned to cpnt_{cluster_num}")
                 return
-            
-            intensity = spectra_profile["intensity"].to_numpy() / spectra_profile["intensity"].max()
+
+            intensity = (
+                spectra_profile["intensity"].to_numpy()
+                / spectra_profile["intensity"].max()
+            )
 
             axs[2].plot(
                 spectra_profile["energy"],
@@ -808,20 +822,25 @@ class PixelSegmenter(object):
 
             legend_properties = {"size": 7}
             axs[2].legend(
-                loc="upper right", handletextpad=0.5, frameon=False, prop=legend_properties
+                loc="upper right",
+                handletextpad=0.5,
+                frameon=False,
+                prop=legend_properties,
             )
 
             if np.array(spectra_profile["energy"]).min() <= 0:
-                zero_energy_idx = np.where(np.array(spectra_profile["energy"]).round(2) == 0)[
-                    0
-                ][0]
+                zero_energy_idx = np.where(
+                    np.array(spectra_profile["energy"]).round(2) == 0
+                )[0][0]
             else:
                 zero_energy_idx = 0
             for el in self.dataset.feature_list:
                 peak_sum = intensity_sum[zero_energy_idx:][
                     int(self.peak_dict[el] * 100) + 1
                 ]
-                peak_single = intensity[zero_energy_idx:][int(self.peak_dict[el] * 100) + 1]
+                peak_single = intensity[zero_energy_idx:][
+                    int(self.peak_dict[el] * 100) + 1
+                ]
 
                 peak = max(peak_sum, peak_single)
                 axs[2].vlines(
@@ -847,10 +866,12 @@ class PixelSegmenter(object):
 
     def plot_phase_map(self, cmap=None, alpha_cluster_map=0.75):
         cmap = self.color_palette if cmap is None else cmap
-        if type(self.dataset) not in [IMAGEDataset, PIXLDataset]:
-            img = self.nav_img.data 
+        if not isinstance(self.dataset, (IMAGEDataset, PIXLDataset)):
+            img = self.nav_img.data
         else:
-            img = resize(self.dataset.intensity_map, self.dataset.chemical_maps.shape[:2])
+            img = resize(
+                self.dataset.intensity_map, self.dataset.chemical_maps.shape[:2]
+            )
 
         phase = self.labels.reshape(self.height, self.width)
 
@@ -889,15 +910,14 @@ class PixelSegmenter(object):
     def plot_binary_map_spectra_profile(
         self, cluster_num, normalisation=True, spectra_range=(0, 8), **kwargs
     ):
-
-        binary_map, binary_map_indices, spectra_profile = self.get_binary_map_spectra_profile(
-            cluster_num, use_label=False
+        binary_map, binary_map_indices, spectra_profile = (
+            self.get_binary_map_spectra_profile(cluster_num, use_label=False)
         )
 
-        if type(self.dataset) not in [IMAGEDataset, PIXLDataset]:
+        if not isinstance(self.dataset, (IMAGEDataset, PIXLDataset)):
             ncols, figsize, gridspec_kw = 3, (13, 3), {"width_ratios": [1, 1, 2]}
         else:
-            ncols, figsize, gridspec_kw = 2, (6,3), None
+            ncols, figsize, gridspec_kw = 2, (6, 3), None
 
         fig, axs = plt.subplots(
             nrows=1,
@@ -923,11 +943,20 @@ class PixelSegmenter(object):
         axs[0].axis("off")
         axs[0].set_aspect("equal", "box")
 
-        if type(self.dataset) not in [IMAGEDataset, PIXLDataset]:
-            nav_img = self.dataset.nav_img_bin.data if self.dataset.nav_img_bin else self.dataset.nav_img.data
+        if not isinstance(self.dataset, (IMAGEDataset, PIXLDataset)):
+            nav_img = (
+                self.dataset.nav_img_bin.data
+                if self.dataset.nav_img_bin
+                else self.dataset.nav_img.data
+            )
         else:
-            if self.dataset.intensity_map.shape[:2]!= self.dataset.chemical_maps.shape[:2]: # if size of intensity map is different from chemical maps
-                nav_img = resize(self.dataset.intensity_map, self.dataset.chemical_maps.shape[:2]) 
+            if (
+                self.dataset.intensity_map.shape[:2]
+                != self.dataset.chemical_maps.shape[:2]
+            ):  # if size of intensity map is different from chemical maps
+                nav_img = resize(
+                    self.dataset.intensity_map, self.dataset.chemical_maps.shape[:2]
+                )
             else:
                 nav_img = self.dataset.intensity_map
         axs[1].imshow(nav_img, cmap="gray", interpolation="none", alpha=0.9)
@@ -938,10 +967,11 @@ class PixelSegmenter(object):
         axs[1].axis("off")
         axs[1].set_title("Navigation Sigmal + Binary Map", fontsize=10)
 
-        if type(self.dataset) not in [IMAGEDataset, PIXLDataset]:
+        if not isinstance(self.dataset, (IMAGEDataset, PIXLDataset)):
             if normalisation:
                 intensity = (
-                    spectra_profile["intensity"].to_numpy() / spectra_profile["intensity"].max()
+                    spectra_profile["intensity"].to_numpy()
+                    / spectra_profile["intensity"].max()
                 )
             else:
                 intensity = spectra_profile["intensity"].to_numpy()
@@ -964,9 +994,9 @@ class PixelSegmenter(object):
                 )
 
             if np.array(spectra_profile["energy"]).min() <= 0.0:
-                zero_energy_idx = np.where(np.array(spectra_profile["energy"]).round(2) == 0)[
-                    0
-                ][0]
+                zero_energy_idx = np.where(
+                    np.array(spectra_profile["energy"]).round(2) == 0
+                )[0][0]
             else:
                 zero_energy_idx = 0
             for el in self.peak_list:
@@ -1014,7 +1044,7 @@ class PixelSegmenter(object):
                     )
                 except ZeroDivisionError:
                     pass
-            
+
             axs[2].set_xlim(spectra_range[0], spectra_range[1])
             axs[2].set_ylim(None, intensity.max() * 1.2)
             axs[2].set_xlabel("Energy / keV", fontsize=10)
@@ -1037,9 +1067,8 @@ class PixelSegmenter(object):
         save=None,
         **kwargs,
     ):
-
-        binary_map, binary_map_indices, spectra_profile = self.get_binary_map_spectra_profile(
-            cluster_num, **binary_filter_args
+        binary_map, binary_map_indices, spectra_profile = (
+            self.get_binary_map_spectra_profile(cluster_num, **binary_filter_args)
         )
 
         fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(5, 2.5), dpi=96, **kwargs)
@@ -1049,7 +1078,9 @@ class PixelSegmenter(object):
         axs[0].axis("off")
         axs[0].set_aspect("equal", "box")
 
-        axs[1].imshow(self.dataset.nav_img_bin.data, cmap="gray", interpolation="none", alpha=1)
+        axs[1].imshow(
+            self.dataset.nav_img_bin.data, cmap="gray", interpolation="none", alpha=1
+        )
         axs[1].scatter(
             binary_map_indices[1], binary_map_indices[0], c="r", alpha=0.05, s=1.2
         )
@@ -1091,7 +1122,7 @@ class PixelSegmenter(object):
                     else:
                         axs_sub = axs[col]
 
-                    if type(self.dataset) in [IMAGEDataset, PIXLDataset]:
+                    if isinstance(self.dataset, (IMAGEDataset, PIXLDataset)):
                         axs_sub.bar(
                             self.dataset.feature_list,
                             components[cpnt],
@@ -1099,14 +1130,19 @@ class PixelSegmenter(object):
                             linewidth=1,
                         )
                         for i in range(len(self.dataset.feature_list)):
-                            y = components[cpnt][i] + components[cpnt].max()*0.03
-                            axs_sub.text(i-len(self.dataset.feature_list[i])*0.11,y,self.dataset.feature_list[i], fontsize=8)
-                            
-                        axs_sub.set_ylim(None, components[cpnt].max()*1.2)
+                            y = components[cpnt][i] + components[cpnt].max() * 0.03
+                            axs_sub.text(
+                                i - len(self.dataset.feature_list[i]) * 0.11,
+                                y,
+                                self.dataset.feature_list[i],
+                                fontsize=8,
+                            )
+
+                        axs_sub.set_ylim(None, components[cpnt].max() * 1.2)
                         axs_sub.set_xticks([])
                         axs_sub.set_xticklabels([])
                         axs_sub.set_title(f"cpnt_{cur_cpnt}")
-                    
+
                     else:
                         axs_sub.plot(self.energy_axis, components[cpnt], linewidth=1)
                         axs_sub.set_xlim(0, 8)
@@ -1114,7 +1150,7 @@ class PixelSegmenter(object):
                         axs_sub.set_ylabel("Intensity")
                         axs_sub.set_xlabel("Energy (keV)")
                         axs_sub.set_title(f"cpnt_{cur_cpnt}")
-    
+
                         if np.array(self.energy_axis).min() <= 0.0:
                             zero_energy_idx = np.where(
                                 np.array(self.energy_axis).round(2) == 0
@@ -1187,7 +1223,9 @@ class PixelSegmenter(object):
                 ),
             )
 
-        zero_energy_idx = np.where(np.array(spectra_profile["energy"]).round(2) == 0)[0][0]
+        zero_energy_idx = np.where(np.array(spectra_profile["energy"]).round(2) == 0)[
+            0
+        ][0]
         for el in peak_list:
             peak = intensity[zero_energy_idx:][int(self.peak_dict[el] * 100) + 1]
             axs.vlines(
@@ -1206,23 +1244,25 @@ class PixelSegmenter(object):
                 fontsize=7.5,
             )
         plt.show()
-    
-    def plot_ternary_composition(self, **kwargs): # see args for cluster_quantification
+
+    def plot_ternary_composition(self, **kwargs):  # see args for cluster_quantification
         cluster_element_intensities = self.cluster_quantification(**kwargs)
-        
-        fig = go.Figure(px.scatter_ternary(cluster_element_intensities, 
-                                   *cluster_element_intensities.columns,
-                                   template='none',
-                                   opacity=0.5)
+
+        fig = go.Figure(
+            px.scatter_ternary(
+                cluster_element_intensities,
+                *cluster_element_intensities.columns,
+                template="none",
+                opacity=0.5,
+            )
         )
 
-        fig.update_layout(title="Ternary diagram in at.%",
-                          title_x=0.5,
-                          width=500,
-                          height=500)
-        
-        fig.update_traces(marker=dict(size=3.0,
-                                      line=dict(width=0)),
-                          selector=dict(mode='markers'),
-                         )
+        fig.update_layout(
+            title="Ternary diagram in at.%", title_x=0.5, width=500, height=500
+        )
+
+        fig.update_traces(
+            marker=dict(size=3.0, line=dict(width=0)),
+            selector=dict(mode="markers"),
+        )
         fig.show()

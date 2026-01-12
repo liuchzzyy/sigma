@@ -1,8 +1,8 @@
 import os
-import torch
 import datetime
-from typing import Dict
+from typing import Dict, Optional, List, Union
 import numpy as np
+import torch
 import torch.nn as nn
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
@@ -10,24 +10,19 @@ from torch.utils.data import DataLoader
 from tqdm.notebook import tqdm_notebook as tqdm
 from matplotlib import pyplot as plt
 import seaborn as sns
-from sigma.src.utils import FeatureDataset
-
-import warnings
-
-warnings.filterwarnings("ignore")
+from sigma.core.data import FeatureDataset
 
 
-class Experiment(object):
+class Experiment:
     def __init__(
         self,
         descriptor: str,
         general_results_dir: str,
-        model: torch,
+        model: Union[nn.Module, type],
         model_args: dict,
-        chosen_dataset: np,
-        save_model_every_epoch=False,
+        chosen_dataset: np.ndarray,
+        save_model_every_epoch: bool = False,
     ):
-
         self.descriptor = "Model-" + descriptor
         print(f"model_name: {self.descriptor}")
         self.general_results_dir = general_results_dir
@@ -41,8 +36,17 @@ class Experiment(object):
         print(f"device: {str(self.device)}")
 
         # Set Model
-        self.model_name = model.__name__
-        self.model = model(in_channel=self.chosen_dataset[0].shape[-1], **model_args)
+        # If model is a class (type), instantiate it. If it's already an instance, use it.
+        # The original code assumed it was a class: model(in_channel=..., **model_args)
+        if isinstance(model, type):
+            self.model_name = model.__name__
+            self.model = model(
+                in_channel=self.chosen_dataset[0].shape[-1], **model_args
+            )
+        else:
+            self.model_name = model.__class__.__name__
+            self.model = model
+
         print("num_parameters:", sum(p.numel() for p in self.model.parameters()))
         self.model.to(self.device)
         self.optimizer = Adam(self.model.parameters())
@@ -67,10 +71,6 @@ class Experiment(object):
         if not os.path.isdir(self.params_dir):
             os.mkdir(self.params_dir)
 
-        # self.backup_dir = os.path.join(self.results_dir,'backup')
-        # if not os.path.isdir(self.backup_dir):
-        #     os.mkdir(self.backup_dir)
-
     def run_model(
         self,
         num_epochs: int,
@@ -81,15 +81,15 @@ class Experiment(object):
         task: str = "train_eval",
         noise_added=None,
         criterion: str = "MSE",
-        KLD_lambda:float = 1e-4,
+        KLD_lambda: float = 1e-4,
         print_latent: bool = False,
-        lr_scheduler_args: Dict={
-                            "factor": 0.5,
-                            "verbose": True,
-                            "patience": 5,
-                            "threshold": 1e-2,
-                            "min_lr": 1e-7,
-                        },
+        lr_scheduler_args: Dict = {
+            "factor": 0.5,
+            "verbose": True,
+            "patience": 5,
+            "threshold": 1e-2,
+            "min_lr": 1e-7,
+        },
     ):
         # Loss functions
         if criterion == "MSE":
@@ -167,7 +167,6 @@ class Experiment(object):
         for epoch in range(
             start_epoch, self.num_epochs
         ):  # loop over the dataset multiple times
-
             self.train(train_dataloader, epoch + 1)
 
             if self.task == "train_eval":
@@ -264,13 +263,15 @@ class Experiment(object):
     def plot_latent(self, epoch):
         latent = self.get_latent()
         fig, axs = plt.subplots(1, 1, figsize=(3, 3), dpi=100)
-        sns.scatterplot(latent[:, 0], latent[:, 1], s=0.5, alpha=0.1, ax=axs, color="r")
+        sns.scatterplot(
+            x=latent[:, 0], y=latent[:, 1], s=0.5, alpha=0.1, ax=axs, color="r"
+        )
         # axs.set_aspect(1)
-        axs.set_title(f"Epoch{epoch+1}")
+        axs.set_title(f"Epoch{epoch + 1}")
         plt.show()
 
     def KLD_loss(self, mu, logvar):
-        loss = -0.5 * torch.mean(1 + logvar - mu ** 2 - logvar.exp())
+        loss = -0.5 * torch.mean(1 + logvar - mu**2 - logvar.exp())
         return loss
 
     def iterate_through_batches(self, model, dataloader, epoch, training):
@@ -332,7 +333,7 @@ class Experiment(object):
                         mu, logvar, z, x_recon = model(x)
 
                 recon_loss = self.criterion(x_recon, x)
-                KLD_loss = self.KLD_loss(mu, logvar)
+                # KLD_loss = self.KLD_loss(mu, logvar) # Unused variable
                 loss = (
                     self.criterion(x_recon, x)
                     + self.KLD_loss(mu, logvar) * self.KLD_lambda
@@ -362,7 +363,7 @@ class Experiment(object):
             self.train_loss = check_point["train_loss"]
             self.test_loss = check_point["test_loss"]
 
-    def get_latent(self) -> np:
+    def get_latent(self) -> np.ndarray:
         latents = list()
         dataset_ = FeatureDataset(self.chosen_dataset, "all")
         loader = DataLoader(dataset_, batch_size=4096, shuffle=False)

@@ -1,8 +1,8 @@
 from sigma.utils import visualisation as visual
-from sigma.src.segmentation import PixelSegmenter
+from sigma.processing.segmentation import PixelSegmenter
 from sigma.utils.load import SEMDataset, IMAGEDataset, PIXLDataset
 from sigma.utils.loadtem import TEMDataset
-from sigma.src.utils import k_factors_120kV
+from sigma.utils.physics import k_factors_120kV
 
 import os
 import random
@@ -205,7 +205,7 @@ def pick_color(plot_func, *args, **kwargs):
     display(final_box)
 
 
-def view_dataset(dataset:SEMDataset, search_energy=True):
+def view_dataset(dataset: SEMDataset, search_energy=True):
     if search_energy == True:
         search_energy_peak()
 
@@ -226,7 +226,9 @@ def view_dataset(dataset:SEMDataset, search_energy=True):
     elemental_map_out = widgets.Output()
     with elemental_map_out:
         pick_color(
-            visual.plot_intensity_maps, spectra=dataset.spectra, element_list=dataset.feature_list
+            visual.plot_intensity_maps,
+            spectra=dataset.spectra,
+            element_list=dataset.feature_list,
         )
         # fig = visual.plot_intensity_maps(sem.spectra, sem.feature_list)
         # save_fig(fig)
@@ -302,6 +304,7 @@ def view_dataset(dataset:SEMDataset, search_energy=True):
         tab.set_title(i + 1, "Elemental maps (binned)")
     display(tab)
 
+
 def view_im_dataset(im):
     intensity_out = widgets.Output()
     with intensity_out:
@@ -314,9 +317,9 @@ def view_im_dataset(im):
     elemental_map_out = widgets.Output()
     with elemental_map_out:
         pick_color(
-            visual.plot_intensity_maps, 
-            spectra=im.chemical_maps, 
-            element_list=im.feature_list
+            visual.plot_intensity_maps,
+            spectra=im.chemical_maps,
+            element_list=im.feature_list,
         )
         # fig = visual.plot_intensity_maps(sem.spectra, sem.feature_list)
         # save_fig(fig)
@@ -354,7 +357,6 @@ def view_im_dataset(im):
         with elemental_map_out:
             visual.plot_intensity_maps(im.chemical_maps, im.feature_list)
 
-
     button.on_click(set_to)
     all_widgets = widgets.HBox([text, button])
     display(all_widgets)
@@ -368,28 +370,41 @@ def view_im_dataset(im):
     display(tab)
 
 
-def view_rgb(dataset:Union[SEMDataset,TEMDataset,IMAGEDataset]):
+def view_rgb(dataset: Union[SEMDataset, TEMDataset, IMAGEDataset]):
     option_dict = {}
     if isinstance(dataset.normalised_elemental_data, np.ndarray):
         option_dict["normalised"] = dataset.normalised_elemental_data
-        option_dict["normalised"]/= option_dict["normalised"].max(keepdims=True, axis=(0,1))
+        option_dict["normalised"] /= option_dict["normalised"].max(
+            keepdims=True, axis=(0, 1)
+        )
 
     if type(dataset) != IMAGEDataset:
         option_dict["binned"] = dataset.get_feature_maps()
-        option_dict["binned"] = option_dict["binned"].clip(None, np.percentile(option_dict["binned"], 99, axis=(0,1), keepdims=True))
-        option_dict["binned"] /= option_dict["binned"].max(keepdims=True, axis=(0,1))
-        
+        option_dict["binned"] = option_dict["binned"].clip(
+            None, np.percentile(option_dict["binned"], 99, axis=(0, 1), keepdims=True)
+        )
+        option_dict["binned"] /= option_dict["binned"].max(keepdims=True, axis=(0, 1))
+
         option_dict["raw"] = dataset.get_feature_maps(raw_data=True)
-        option_dict["raw"] = option_dict["raw"].clip(None, np.percentile(option_dict["raw"], 99, axis=(0,1), keepdims=True))
-        option_dict["raw"] /= option_dict["raw"].max(keepdims=True, axis=(0,1))
+        option_dict["raw"] = option_dict["raw"].clip(
+            None, np.percentile(option_dict["raw"], 99, axis=(0, 1), keepdims=True)
+        )
+        option_dict["raw"] /= option_dict["raw"].max(keepdims=True, axis=(0, 1))
     else:
         option_dict["raw"] = dataset.chemical_maps
-        option_dict["raw"] = option_dict["raw"].clip(None, np.percentile(option_dict["raw"], 99, axis=(0,1), keepdims=True))
-        option_dict["raw"] /= option_dict["raw"].max(keepdims=True, axis=(0,1))
+        option_dict["raw"] = option_dict["raw"].clip(
+            None, np.percentile(option_dict["raw"], 99, axis=(0, 1), keepdims=True)
+        )
+        option_dict["raw"] /= option_dict["raw"].max(keepdims=True, axis=(0, 1))
         if dataset.chemical_maps_bin is not None:
             option_dict["binned"] = dataset.chemical_maps_bin
-            option_dict["binned"] = option_dict["binned"].clip(None, np.percentile(option_dict["binned"], 99, axis=(0,1), keepdims=True))
-            option_dict["binned"] /= option_dict["binned"].max(keepdims=True, axis=(0,1))
+            option_dict["binned"] = option_dict["binned"].clip(
+                None,
+                np.percentile(option_dict["binned"], 99, axis=(0, 1), keepdims=True),
+            )
+            option_dict["binned"] /= option_dict["binned"].max(
+                keepdims=True, axis=(0, 1)
+            )
 
     dropdown_option = widgets.Dropdown(
         options=list(option_dict.keys()), description="Data:"
@@ -451,30 +466,37 @@ def view_rgb(dataset:Union[SEMDataset,TEMDataset,IMAGEDataset]):
     display(plots_output)
 
 
-def view_pixel_distributions(dataset:Union[SEMDataset, TEMDataset, IMAGEDataset], norm_list:List=[], cmap:str="viridis"):
+def view_pixel_distributions(
+    dataset: Union[SEMDataset, TEMDataset, IMAGEDataset],
+    norm_list: List = [],
+    cmap: str = "viridis",
+):
     peak_options = dataset.feature_list
     dropdown_peaks = widgets.Dropdown(options=peak_options, description="Element:")
-    
+
     plots_output = widgets.Output()
-    
+
     with plots_output:
         fig = visual.plot_pixel_distributions(
             dataset=dataset, norm_list=norm_list, peak=dropdown_peaks.value, cmap=cmap
-            )
+        )
         plt.show()
         save_fig(fig)
-            
+
     def dropdown_option_eventhandler(change):
         plots_output.clear_output()
         with plots_output:
             fig = visual.plot_pixel_distributions(
-            dataset=dataset, norm_list=norm_list, peak=dropdown_peaks.value, cmap=cmap
+                dataset=dataset,
+                norm_list=norm_list,
+                peak=dropdown_peaks.value,
+                cmap=cmap,
             )
             plt.show()
             save_fig(fig)
-    
+
     dropdown_peaks.observe(dropdown_option_eventhandler, names="value")
-    out_box = widgets.VBox([dropdown_peaks, plots_output])    
+    out_box = widgets.VBox([dropdown_peaks, plots_output])
     display(out_box)
 
 
@@ -603,7 +625,6 @@ def check_latent_space(ps: PixelSegmenter, ratio_to_be_shown=0.25, show_map=Fals
         color = "#{:02x}{:02x}{:02x}".format(r, g, b)
         phase_colors.append(color)
 
-   
     domain = [i for i in range(ps.n_components)]
     range_ = phase_colors
 
@@ -618,10 +639,18 @@ def check_latent_space(ps: PixelSegmenter, ratio_to_be_shown=0.25, show_map=Fals
     y_id = y_id.ravel().reshape(-1, 1)
 
     if type(ps.dataset) not in [IMAGEDataset, PIXLDataset]:
-        nav_img = ps.dataset.nav_img.data if ps.dataset.nav_img_bin is None else ps.dataset.nav_img_bin.data
+        nav_img = (
+            ps.dataset.nav_img.data
+            if ps.dataset.nav_img_bin is None
+            else ps.dataset.nav_img_bin.data
+        )
         z_id = (nav_img / nav_img.max()).reshape(-1, 1)
     else:
-        intensity_map = ps.dataset.intensity_map if ps.dataset.intensity_map_bin is None else ps.dataset.intensity_map_bin 
+        intensity_map = (
+            ps.dataset.intensity_map
+            if ps.dataset.intensity_map_bin is None
+            else ps.dataset.intensity_map_bin
+        )
         z_id = (intensity_map / intensity_map.max()).reshape(-1, 1)
 
     combined = np.concatenate(
@@ -638,7 +667,7 @@ def check_latent_space(ps: PixelSegmenter, ratio_to_be_shown=0.25, show_map=Fals
 
     if ratio_to_be_shown != 1.0:
         sampled_combined = random.choices(
-            combined, k=int(latent.shape[0] // (ratio_to_be_shown ** -1))
+            combined, k=int(latent.shape[0] // (ratio_to_be_shown**-1))
         )
         sampled_combined = np.array(sampled_combined)
     else:
@@ -664,7 +693,9 @@ def check_latent_space(ps: PixelSegmenter, ratio_to_be_shown=0.25, show_map=Fals
     # Points
     points = (
         alt.Chart(source)
-        .mark_circle(size=3,)
+        .mark_circle(
+            size=3,
+        )
         .encode(
             x="x:Q",
             y="y:Q",  # use min extent to stabilize axis title placement
@@ -680,10 +711,7 @@ def check_latent_space(ps: PixelSegmenter, ratio_to_be_shown=0.25, show_map=Fals
         )
         .properties(width=450, height=450)
         .properties(title=alt.TitleParams(text="Latent space"))
-        .add_selection(
-            brush,
-            interaction
-            )
+        .add_selection(brush, interaction)
     )
 
     # Base chart for data tables
@@ -703,7 +731,11 @@ def check_latent_space(ps: PixelSegmenter, ratio_to_be_shown=0.25, show_map=Fals
     # Heatmap
     if show_map == True:
         nav_img_df = pd.DataFrame(
-            {"x_nav_img": x_id.ravel(), "y_nav_img": y_id.ravel(), "z_nav_img": z_id.ravel()}
+            {
+                "x_nav_img": x_id.ravel(),
+                "y_nav_img": y_id.ravel(),
+                "z_nav_img": z_id.ravel(),
+            }
         )
         nav_img = (
             alt.Chart(nav_img_df)
@@ -715,7 +747,7 @@ def check_latent_space(ps: PixelSegmenter, ratio_to_be_shown=0.25, show_map=Fals
                     "z_nav_img:Q", scale=alt.Scale(scheme="greys", domain=[1.0, 0.0])
                 ),
             )
-            .properties(width=ps.width*2, height=ps.height*2)
+            .properties(width=ps.width * 2, height=ps.height * 2)
         )
         heatmap = (
             alt.Chart(source)
@@ -728,12 +760,14 @@ def check_latent_space(ps: PixelSegmenter, ratio_to_be_shown=0.25, show_map=Fals
                 ),
                 opacity=alt.condition(brush, alt.value(0.75), alt.value(0)),
             )
-            .properties(width=ps.width*2, height=ps.height*2)
+            .properties(width=ps.width * 2, height=ps.height * 2)
             .add_selection(brush)
         )
         heatmap_nav_img = nav_img + heatmap
 
-    final_widgets = [points, heatmap_nav_img, text] if show_map == True else [points, text]
+    final_widgets = (
+        [points, heatmap_nav_img, text] if show_map == True else [points, text]
+    )
 
     # Build chart
     chart = (
@@ -753,20 +787,20 @@ def show_cluster_distribution(ps: PixelSegmenter, **kwargs):
     all_fig = []
     with plots_output:
         for i in range(ps.n_components):
-                fig = ps.plot_single_cluster_distribution(cluster_num=i, **kwargs)
-                all_fig.append(fig)
+            fig = ps.plot_single_cluster_distribution(cluster_num=i, **kwargs)
+            all_fig.append(fig)
 
     def eventhandler(change):
         plots_output.clear_output()
         with plots_output:
             if change.new == ("All",):
                 for i in range(ps.n_components):
-                        fig = ps.plot_single_cluster_distribution(cluster_num=i, **kwargs)
+                    fig = ps.plot_single_cluster_distribution(cluster_num=i, **kwargs)
             else:
                 for cluster in change.new:
-                        fig = ps.plot_single_cluster_distribution(
-                            cluster_num=int(cluster.split("_")[1]), **kwargs
-                        )
+                    fig = ps.plot_single_cluster_distribution(
+                        cluster_num=int(cluster.split("_")[1]), **kwargs
+                    )
 
     multi_select_cluster.observe(eventhandler, names="value")
     display(multi_select_cluster)
@@ -930,7 +964,7 @@ def show_unmixed_weights_and_compoments(
         plots_output_cpnt.clear_output()
         with plots_output_cpnt:
             if type(ps.dataset) in [IMAGEDataset, PIXLDataset]:
-                fig, axs = plt.subplots(1,1)
+                fig, axs = plt.subplots(1, 1)
                 axs.bar(
                     ps.dataset.feature_list,
                     components[change.new],
@@ -938,16 +972,23 @@ def show_unmixed_weights_and_compoments(
                     linewidth=1,
                 )
                 for i in range(len(ps.dataset.feature_list)):
-                    y = components[change.new][i] + components[change.new].max()*0.03
-                    axs.text(i-len(ps.dataset.feature_list[i])*0.11,y,ps.dataset.feature_list[i], fontsize=8)
-                    
-                axs.set_ylim(None, components[change.new].max()*1.2)
+                    y = components[change.new][i] + components[change.new].max() * 0.03
+                    axs.text(
+                        i - len(ps.dataset.feature_list[i]) * 0.11,
+                        y,
+                        ps.dataset.feature_list[i],
+                        fontsize=8,
+                    )
+
+                axs.set_ylim(None, components[change.new].max() * 1.2)
                 axs.set_xticks([])
                 axs.set_xticklabels([])
                 axs.set_title(f"{change.new}")
                 plt.show()
             else:
-                visual.plot_profile(ps.energy_axis, components[change.new], ps.peak_list)
+                visual.plot_profile(
+                    ps.energy_axis, components[change.new], ps.peak_list
+                )
 
     dropdown_cluster.observe(dropdown_cluster_eventhandler, names="value")
 
@@ -999,7 +1040,9 @@ def view_clusters_sum_spectra(
                     cluster_num=int(cluster.split("_")[1]), use_label=True
                 )
                 visual.plot_profile(
-                    spectra_profile["energy"], spectra_profile["intensity"], ps.peak_list
+                    spectra_profile["energy"],
+                    spectra_profile["intensity"],
+                    ps.peak_list,
                 )
 
     multi_select.observe(eventhandler, names="value")
@@ -1120,7 +1163,9 @@ def view_emi_dataset(tem, search_energy=True):
     with elemental_map_out:
         if len(tem.feature_list) != 0:
             pick_color(
-                visual.plot_intensity_maps, spectra=tem.spectra, element_list=tem.feature_list
+                visual.plot_intensity_maps,
+                spectra=tem.spectra,
+                element_list=tem.feature_list,
             )
             # fig = visual.plot_intensity_maps(sem.spectra, sem.feature_list)
             # save_fig(fig)
@@ -1203,15 +1248,17 @@ def view_emi_dataset(tem, search_energy=True):
     display(tab)
 
 
-def show_abundance_map(ps:PixelSegmenter, weights:pd.DataFrame, components: pd.DataFrame):
-    def plot_rgb(ps, phases:List):
+def show_abundance_map(
+    ps: PixelSegmenter, weights: pd.DataFrame, components: pd.DataFrame
+):
+    def plot_rgb(ps, phases: List):
         shape = ps.get_binary_map_spectra_profile(0)[0].shape
         img = np.zeros((shape[0], shape[1], 3))
-        
+
         # make abundance map
         for i, phase in enumerate(phases):
-            if phase!='None':
-                cpnt_weights = weights[phase]/weights[phase].max()
+            if phase != "None":
+                cpnt_weights = weights[phase] / weights[phase].max()
                 tmp = np.zeros(shape)
                 for j in range(ps.n_components):
                     try:
@@ -1229,18 +1276,24 @@ def show_abundance_map(ps:PixelSegmenter, weights:pd.DataFrame, components: pd.D
         axs.axis("off")
         plt.show()
         return fig
-    
-    cpnt_names = [f'cpnt_{i}' for i in range(len(weights.columns))] 
-    cpnt_options = [x for x in zip(cpnt_names, weights.columns)] + [('None', 'None')]
-    dropdown_r = widgets.Dropdown(options=cpnt_options, value='None', description="Red:")
-    dropdown_g = widgets.Dropdown(options=cpnt_options, value='None', description="Green:")
-    dropdown_b = widgets.Dropdown(options=cpnt_options, value='None', description="Blue:")
+
+    cpnt_names = [f"cpnt_{i}" for i in range(len(weights.columns))]
+    cpnt_options = [x for x in zip(cpnt_names, weights.columns)] + [("None", "None")]
+    dropdown_r = widgets.Dropdown(
+        options=cpnt_options, value="None", description="Red:"
+    )
+    dropdown_g = widgets.Dropdown(
+        options=cpnt_options, value="None", description="Green:"
+    )
+    dropdown_b = widgets.Dropdown(
+        options=cpnt_options, value="None", description="Blue:"
+    )
 
     plots_output = widgets.Output()
     with plots_output:
         fig = plot_rgb(
             ps,
-            phases=['None', 'None', 'None'],
+            phases=["None", "None", "None"],
         )
         save_fig(fig)
 
@@ -1279,26 +1332,36 @@ def show_abundance_map(ps:PixelSegmenter, weights:pd.DataFrame, components: pd.D
     display(color_box)
     display(plots_output)
 
-    
-def plot_ternary_composition(ps:PixelSegmenter):
+
+def plot_ternary_composition(ps: PixelSegmenter):
     # cluster_num:int,
     # elements:List,
     # k_factors:List[float]=None,
     # composition_units:str='atomic',
     cluster_options = range(ps.n_components)
-    dropdown_cluster = widgets.Dropdown(options=cluster_options, description='cluster',value=None, )
-    
+    dropdown_cluster = widgets.Dropdown(
+        options=cluster_options,
+        description="cluster",
+        value=None,
+    )
+
     element_options = []
     for el in ps.dataset.feature_list:
         if el in k_factors_120kV.keys():
             element_options.append(el)
-    
-    dropdown_element1 = widgets.Dropdown(options=element_options, description='element1',value=None)
-    dropdown_element2 = widgets.Dropdown(options=element_options, description='element2',value=None)
-    dropdown_element3 = widgets.Dropdown(options=element_options, description='element3',value=None)
-    
+
+    dropdown_element1 = widgets.Dropdown(
+        options=element_options, description="element1", value=None
+    )
+    dropdown_element2 = widgets.Dropdown(
+        options=element_options, description="element2", value=None
+    )
+    dropdown_element3 = widgets.Dropdown(
+        options=element_options, description="element3", value=None
+    )
+
     plots_output = widgets.Output()
-    
+
     button = widgets.Button(description="Calculate")
     out = widgets.Output()
 
@@ -1308,25 +1371,30 @@ def plot_ternary_composition(ps:PixelSegmenter):
             try:
                 ps.plot_ternary_composition(
                     cluster_num=int(dropdown_cluster.value),
-                    elements=[dropdown_element1.value, dropdown_element2.value, dropdown_element3.value],
+                    elements=[
+                        dropdown_element1.value,
+                        dropdown_element2.value,
+                        dropdown_element3.value,
+                    ],
                 )
             except ValueError:
-                print('Oops. Please try different combiniations of elements')
+                print("Oops. Please try different combiniations of elements")
             except TypeError:
-                print('Please select cluster number')
+                print("Please select cluster number")
             except AttributeError:
-                print('Please select elements')
+                print("Please select elements")
 
     button.on_click(button_evenhandler)
-    
-    option_box = widgets.HBox([dropdown_cluster, 
-                               dropdown_element1, 
-                               dropdown_element2,
-                               dropdown_element3, 
-                               button],
-                              layout=Layout(flex="flex-start", width="80%",align_items='center'),)
+
+    option_box = widgets.HBox(
+        [
+            dropdown_cluster,
+            dropdown_element1,
+            dropdown_element2,
+            dropdown_element3,
+            button,
+        ],
+        layout=Layout(flex="flex-start", width="80%", align_items="center"),
+    )
     display(option_box)
     display(plots_output)
-    
-            
-    
