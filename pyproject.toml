@@ -66,16 +66,6 @@ typeCheckingMode = "basic"
 
 [tool.pytest.ini_options]
 filterwarnings = [
-    "ignore:.*append2pathname.*:UserWarning",
-    "ignore:.*incremental_filename.*:UserWarning",
-    "ignore:.*ensure_directory.*:UserWarning",
-    "ignore:.*overwrite.*:UserWarning",
-    "ignore:.*get_file_handle.*:UserWarning",
-    "ignore:.*rsciio.utils.rgb_tools.*:UserWarning",
-    "ignore:.*scipy.odr.*:DeprecationWarning",
-    "ignore:.*moved to `rsciio.utils.path`.*:Warning",
-    "ignore:.*renamed to `rsciio.utils.rgb`.*:Warning",
-    "ignore:.*moved to `rsciio.utils.file`.*:Warning",
 ]
 
 [dependency-groups]
