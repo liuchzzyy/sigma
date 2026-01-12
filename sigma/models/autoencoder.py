@@ -23,7 +23,7 @@ class AutoEncoder(nn.Module):
         decoder = building_block(2, self.hls[-1])
         for i in range(len(self.hls) - 1, 0, -1):
             decoder += building_block(self.hls[i], self.hls[i - 1])
-        decoder += [nn.Linear(self.hls[0], self.in_channel), nn.Softmax()]
+        decoder += [nn.Linear(self.hls[0], self.in_channel), nn.Softmax(dim=-1)]
 
         self.encoder = nn.Sequential(*encoder)
         self.decoder = nn.Sequential(*decoder)
@@ -62,7 +62,7 @@ class VariationalAutoEncoder(nn.Module):
         decoder = building_block(2, self.hls[-1])
         for i in range(len(self.hls) - 1, 0, -1):
             decoder += building_block(self.hls[i], self.hls[i - 1])
-        decoder += [nn.Linear(self.hls[0], self.in_channel), nn.Softmax()]
+        decoder += [nn.Linear(self.hls[0], self.in_channel), nn.Softmax(dim=-1)]
 
         self.encoder = nn.Sequential(*encoder)
         self.decoder = nn.Sequential(*decoder)
