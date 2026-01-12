@@ -9,6 +9,7 @@ from sigma.utils.signal import fft_denoise2d
 
 from typing import List, Dict, Union
 import hyperspy.api as hs
+import exspy
 import numpy as np
 import pandas as pd
 
@@ -101,14 +102,16 @@ class PixelSegmenter(object):
 
         ### Calcuate peak_dict ###
         self.peak_dict = dict()
-        for element in hs.material.elements:
+        for element in exspy.material.elements:
             if element[0] == "Li":
                 continue
-            for character in element[1].Atomic_properties.Xray_lines:
-                peak_name = element[0]
-                char_name = character[0]
-                key = f"{peak_name}_{char_name}"
-                self.peak_dict[key] = character[1].energy_keV
+            # Check if the element has Xray_lines
+            if hasattr(element[1], 'Atomic_properties') and hasattr(element[1].Atomic_properties, 'Xray_lines'):
+                for character in element[1].Atomic_properties.Xray_lines:
+                    peak_name = element[0]
+                    char_name = character[0]
+                    key = f"{peak_name}_{char_name}"
+                    self.peak_dict[key] = character[1].energy_keV
 
         self.peak_list = self.dataset.feature_list
 

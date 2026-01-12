@@ -7,8 +7,8 @@ from pathlib import Path
 from PIL import Image
 from os.path import isfile, join
 from skimage.transform import resize
-from hyperspy._signals.eds_sem import EDSSEMSpectrum
-from hyperspy._signals.signal2d import Signal2D
+from exspy.signals import EDSSEMSpectrum
+from hyperspy.signals import Signal2D
 
 hs.preferences.GUIs.warn_if_guis_are_missing = False
 hs.preferences.save()

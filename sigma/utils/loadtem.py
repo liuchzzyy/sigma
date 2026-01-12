@@ -3,8 +3,7 @@ import hyperspy.api as hs
 import numpy as np
 from sigma.utils.load import SEMDataset
 from hyperspy.signals import Signal2D, Signal1D
-from hyperspy._signals.signal2d import Signal2D, Signal2D
-from hyperspy._signals.eds_tem import EDSTEMSpectrum
+from exspy.signals import EDSTEMSpectrum
 from .base import BaseDataset
 
 class TEMDataset(BaseDataset):
