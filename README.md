@@ -33,7 +33,16 @@ Alternatively, you can install the package via pip:
 pip install emsigma
 ```
 
-**Requirements:** Python >= 3.10
+**Requirements:** Python >= 3.11
+
+### Building a wheel locally
+
+The repository does not include prebuilt wheels. To create
+`dist/emsigma-<version>-py3-none-any.whl`, run:
+
+```bash
+uv build
+```
 
 ## Usage
 
