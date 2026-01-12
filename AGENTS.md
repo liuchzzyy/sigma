@@ -8,7 +8,7 @@ We use modern Python tooling. DO NOT use legacy tools like `pip` directly or `se
 
 - **Package Manager**: [uv](https://github.com/astral-sh/uv)
 - **Build Backend**: `hatchling`
-- **Python Version**: `>=3.11`
+- **Python Version**: `>=3.10`
 - **Linting**: `ruff`
 - **Formatting**: `ruff format`
 - **Type Checking**: `pyright` (via `uv run pyright` or VS Code extension)
