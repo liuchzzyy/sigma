@@ -1,6 +1,7 @@
 from .load import SEMDataset, TEMDataset, IMAGEDataset, PIXLDataset
 from .normalisation import (
     neighbour_averaging,
+    range_normalization,
     softmax,
     zscore,
 )
@@ -19,6 +20,7 @@ __all__ = [
     "IMAGEDataset",
     "PIXLDataset",
     "neighbour_averaging",
+    "range_normalization",
     "zscore",
     "softmax",
     "make_colormap",

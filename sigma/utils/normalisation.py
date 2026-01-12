@@ -48,6 +48,27 @@ def zscore(dataset: np.ndarray) -> np.ndarray:
     return (new_dataset - means) / stds
 
 
+def range_normalization(dataset: np.ndarray) -> np.ndarray:
+    """
+    Normalize the dataset using Min-Max scaling to [0, 1].
+
+    Parameters
+    ----------
+    dataset : np.ndarray
+        Input dataset of shape (H, W, C) or any shape.
+
+    Returns
+    -------
+    np.ndarray
+        Normalized dataset.
+    """
+    min_val = np.min(dataset)
+    max_val = np.max(dataset)
+    if max_val - min_val == 0:
+        return np.zeros_like(dataset)
+    return (dataset - min_val) / (max_val - min_val)
+
+
 def softmax(dataset: np.ndarray) -> np.ndarray:
     exp_dataset = np.exp(dataset)
     sum_exp = np.sum(exp_dataset, axis=2)
