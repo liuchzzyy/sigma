@@ -1,4 +1,4 @@
-from .load import SEMDataset, TEMDataset, IMAGEDataset, PIXLDataset
+from .load import IMAGEDataset, PIXLDataset, SEMDataset, TEMDataset
 from .normalisation import (
     neighbour_averaging,
     range_normalization,

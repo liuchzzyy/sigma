@@ -1,6 +1,7 @@
 import os
 from os.path import join
 from pathlib import Path
+
 import hyperspy.api as hs
 import numpy as np
 from exspy.signals import EDSSEMSpectrum, EDSTEMSpectrum
