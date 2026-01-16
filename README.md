@@ -33,7 +33,7 @@ Alternatively, you can install the package via pip:
 pip install emsigma
 ```
 
-**Requirements:** Python >= 3.10
+**Requirements:** Python >= 3.11
 
 ### Building a wheel locally
 
