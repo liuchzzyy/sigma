@@ -35,6 +35,15 @@ pip install emsigma
 
 **Requirements:** Python >= 3.10
 
+### Building a wheel locally
+
+The repository does not include prebuilt wheels. To create
+`dist/emsigma-0.2.2-py3-none-any.whl`, run:
+
+```bash
+uv build
+```
+
 ## Usage
 
 To run **SIGMA**, use the notebook in the tutorial folder:
